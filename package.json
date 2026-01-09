@@ -1,0 +1,53 @@
+{
+  "name": "safestream-kids",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted, parent-controlled video streaming platform for children",
+  "author": "SafeStream Kids Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "type-check": "turbo run type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "setup": "bash infrastructure/scripts/setup.sh",
+    "status": "bash infrastructure/scripts/status.sh",
+    "postinstall": "cd apps/web && pnpm prisma generate",
+    "db:generate": "cd apps/web && pnpm prisma generate",
+    "db:migrate": "cd apps/web && pnpm prisma migrate dev",
+    "db:migrate:prod": "cd apps/web && pnpm prisma migrate deploy",
+    "db:push": "cd apps/web && pnpm prisma db push",
+    "db:seed": "cd apps/web && pnpm tsx prisma/seed.ts",
+    "db:reset": "bash infrastructure/scripts/db-reset.sh",
+    "db:studio": "cd apps/web && pnpm prisma studio",
+    "docker:dev": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml -f docker-compose.dev.yml up",
+    "docker:dev:build": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "docker:prod": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:down": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml down",
+    "docker:logs": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml logs -f",
+    "docker:clean": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml down -v",
+    "workers:dev": "cd packages/workers && pnpm dev",
+    "ollama:pull": "docker exec -it safestream-ollama ollama pull llama3.1:8b",
+    "search:init": "cd apps/web && pnpm tsx scripts/init-search.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.1",
+    "@types/node": "^20.11.19",
+    "prettier": "^3.2.5",
+    "tsx": "^4.7.1",
+    "turbo": "^1.12.4",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.15.3"
+}

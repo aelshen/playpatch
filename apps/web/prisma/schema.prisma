@@ -1,0 +1,485 @@
+// SafeStream Kids - Database Schema
+// Based on TECHNICAL_DESIGN.md Section 4.2
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// FAMILY & USER MODELS
+// ============================================
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  settings    FamilySettings?
+  users       User[]
+  collections Collection[]
+  channels    Channel[]
+  videos      Video[]
+}
+
+model FamilySettings {
+  id       String @id @default(cuid())
+  familyId String @unique
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  // Global settings
+  defaultAgeRating    AgeRating @default(AGE_7_PLUS)
+  allowAI             Boolean   @default(true)
+  weeklyDigestEnabled Boolean   @default(true)
+  weeklyDigestEmail   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id       String   @id @default(cuid())
+  familyId String
+  family   Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  email    String   @unique
+  password String // Hashed with bcrypt
+  name     String
+  role     UserRole @default(ADMIN)
+  avatarUrl String?
+
+  childProfiles ChildProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+model ChildProfile {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  birthDate DateTime
+  avatarUrl String?
+  pin       String? // Optional PIN for profile switching
+
+  // Settings
+  ageRating      AgeRating @default(AGE_4_PLUS)
+  uiMode         UIMode    @default(EXPLORER)
+  theme          String    @default("space")
+  aiEnabled      Boolean   @default(true)
+  aiVoiceEnabled Boolean   @default(false)
+
+  // Time limits (JSON stored)
+  timeLimits Json?
+
+  // Allowed categories (null = all)
+  allowedCategories String[]
+
+  // Relations
+  watchSessions   WatchSession[]
+  favorites       Favorite[]
+  playlists       ChildPlaylist[]
+  aiConversations AIConversation[]
+  journalEntries  JournalEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum AgeRating {
+  AGE_2_PLUS
+  AGE_4_PLUS
+  AGE_7_PLUS
+  AGE_10_PLUS
+}
+
+enum UIMode {
+  TODDLER
+  EXPLORER
+}
+
+// ============================================
+// CONTENT MODELS
+// ============================================
+
+model Video {
+  id       String @id @default(cuid())
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  // Source
+  sourceUrl  String
+  sourceType SourceType
+  sourceId   String? // e.g., YouTube video ID
+  channelId  String?
+  channel    Channel?   @relation(fields: [channelId], references: [id])
+
+  // Local storage
+  localPath     String?
+  thumbnailPath String?
+  hlsPath       String?
+
+  // Status
+  status          VideoStatus    @default(PENDING)
+  approvalStatus  ApprovalStatus @default(PENDING)
+  approvedBy      String?
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Metadata
+  title       String
+  description String?
+  duration    Int // seconds
+  ageRating   AgeRating @default(AGE_7_PLUS)
+  categories  String[]
+  topics      String[] // AI-extracted + manual
+
+  // Content analysis
+  transcript String?
+  chapters   Json? // Chapter markers
+
+  // Admin notes
+  notes String?
+
+  // Flags
+  isDownloaded  Boolean @default(false)
+  isTranscoded  Boolean @default(false)
+  isTranscribed Boolean @default(false)
+
+  // Relations
+  collections     CollectionVideo[]
+  watchSessions   WatchSession[]
+  favorites       Favorite[]
+  playlistVideos  PlaylistVideo[]
+  aiConversations AIConversation[]
+  journalEntries  JournalEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([familyId])
+  @@index([status])
+  @@index([approvalStatus])
+  @@index([ageRating])
+}
+
+enum SourceType {
+  YOUTUBE
+  VIMEO
+  UPLOAD
+  OTHER
+}
+
+enum VideoStatus {
+  PENDING
+  DOWNLOADING
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Channel {
+  id       String @id @default(cuid())
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  sourceId     String     // YouTube channel ID, etc.
+  sourceType   SourceType
+  name         String
+  description  String?
+  thumbnailUrl String?
+
+  // Sync settings
+  syncMode       SyncMode      @default(REVIEW)
+  syncFrequency  SyncFrequency @default(DAILY)
+  autoAgeRating  AgeRating?
+  autoCategories String[]
+
+  // Selective rules (JSON)
+  selectiveRules Json?
+
+  lastSyncAt DateTime?
+  nextSyncAt DateTime?
+
+  // Relations
+  videos Video[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([familyId, sourceType, sourceId])
+  @@index([familyId])
+}
+
+enum SyncMode {
+  AUTO_APPROVE
+  REVIEW
+  SELECTIVE
+}
+
+enum SyncFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+model Collection {
+  id       String @id @default(cuid())
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  name          String
+  description   String?
+  thumbnailPath String?
+  type          CollectionType @default(MANUAL)
+
+  // Smart playlist rules (JSON)
+  smartRules Json?
+
+  // Visibility
+  visibility    CollectionVisibility @default(ALL)
+  visibleToAges AgeRating[]
+  visibleToIds  String[] // Child profile IDs
+
+  // Relations
+  videos CollectionVideo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([familyId])
+}
+
+enum CollectionType {
+  MANUAL
+  SMART
+}
+
+enum CollectionVisibility {
+  ALL
+  SPECIFIC_AGES
+  SPECIFIC_CHILDREN
+}
+
+model CollectionVideo {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  videoId      String
+  video        Video      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([collectionId, videoId])
+  @@index([collectionId])
+  @@index([videoId])
+}
+
+// ============================================
+// CHILD ACTIVITY MODELS
+// ============================================
+
+model WatchSession {
+  id       String       @id @default(cuid())
+  childId  String
+  child    ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  videoId  String
+  video    Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  duration     Int       @default(0) // seconds watched
+  lastPosition Int       @default(0) // seconds
+  completed    Boolean   @default(false)
+
+  // Device info
+  deviceType String?
+  deviceId   String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+  @@index([videoId])
+  @@index([startedAt])
+}
+
+model Favorite {
+  id      String       @id @default(cuid())
+  childId String
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  videoId String
+  video   Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([childId, videoId])
+  @@index([childId])
+  @@index([videoId])
+}
+
+model ChildPlaylist {
+  id          String       @id @default(cuid())
+  childId     String
+  child       ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+
+  videos PlaylistVideo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+}
+
+model PlaylistVideo {
+  id         String        @id @default(cuid())
+  playlistId String
+  playlist   ChildPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoId    String
+  video      Video         @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  position   Int           @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([playlistId, videoId])
+  @@index([playlistId])
+  @@index([videoId])
+}
+
+// ============================================
+// AI MODELS
+// ============================================
+
+model AIConversation {
+  id      String       @id @default(cuid())
+  childId String
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  videoId String
+  video   Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  // Extracted topics discussed
+  topics String[]
+
+  // Safety flags
+  flags    Json?   // Array of { type, message, timestamp }
+  hasFlags Boolean @default(false)
+
+  messages AIMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+  @@index([videoId])
+  @@index([hasFlags])
+  @@index([startedAt])
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    AIRole
+  content String
+
+  // If filtered, store original
+  wasFiltered     Boolean @default(false)
+  originalContent String?
+
+  // Processing metadata
+  processingTime Int? // ms
+  tokenCount     Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+enum AIRole {
+  CHILD
+  ASSISTANT
+  SYSTEM
+}
+
+// ============================================
+// JOURNAL MODELS
+// ============================================
+
+model JournalEntry {
+  id      String       @id @default(cuid())
+  childId String
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  videoId String
+  video   Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // Entry types
+  voiceNoteUrl  String?
+  voiceNoteText String? // Transcribed
+  drawingUrl    String?
+  textNote      String?
+  rating        Int? // 1-5 stars
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+  @@index([videoId])
+}
+
+// ============================================
+// SYSTEM MODELS
+// ============================================
+
+model BackgroundJob {
+  id      String    @id @default(cuid())
+  type    String
+  status  JobStatus @default(PENDING)
+  payload Json
+  result  Json?
+  error   String?
+  attempts Int      @default(0)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([type])
+  @@index([status])
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}

@@ -1,0 +1,73 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+*.lcov
+.nyc_output
+
+# Next.js
+.next/
+out/
+build
+dist/
+
+# Production
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Local env files
+.env
+.env*.local
+.env.production
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
+
+# Prisma
+prisma/migrations/**/*.sql
+!prisma/migrations/migration_lock.toml
+
+# Docker
+docker-compose.override.yml
+
+# Backup files
+backups/
+*.backup
+*.bak
+
+# Media files (local development)
+uploads/
+videos/
+thumbnails/
+
+# Test files
+playwright-report/
+test-results/
+
+# OS files
+Thumbs.db

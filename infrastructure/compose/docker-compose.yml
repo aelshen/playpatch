@@ -1,0 +1,132 @@
+version: '3.8'
+
+# Base configuration for all environments
+# Use with docker-compose.dev.yml or docker-compose.prod.yml
+# Loads environment variables from project root .env file
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: safestream-postgres
+    environment:
+      POSTGRES_USER: safestream
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-safestream_dev}
+      POSTGRES_DB: safestream
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safestream"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safestream
+    restart: unless-stopped
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: safestream-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - safestream
+    restart: unless-stopped
+
+  # MinIO Object Storage (S3-compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: safestream-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minio_password}
+    volumes:
+      - minio_data:/data
+    networks:
+      - safestream
+    restart: unless-stopped
+
+  # MinIO Client - Create buckets on startup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: safestream-minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc config host add minio http://minio:9000 ${MINIO_ACCESS_KEY:-minio_admin} ${MINIO_SECRET_KEY:-minio_password};
+      /usr/bin/mc mb --ignore-existing minio/videos;
+      /usr/bin/mc mb --ignore-existing minio/thumbnails;
+      /usr/bin/mc mb --ignore-existing minio/avatars;
+      /usr/bin/mc mb --ignore-existing minio/journals;
+      /usr/bin/mc anonymous set download minio/thumbnails;
+      /usr/bin/mc anonymous set download minio/avatars;
+      echo 'MinIO buckets created successfully';
+      exit 0;
+      "
+    networks:
+      - safestream
+
+  # Meilisearch
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: safestream-meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-master_key_change_me}
+      MEILI_ENV: ${MEILI_ENV:-development}
+      MEILI_NO_ANALYTICS: true
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - safestream
+    restart: unless-stopped
+
+  # Ollama for local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: safestream-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - safestream
+    restart: unless-stopped
+    # Uncomment for GPU support (NVIDIA)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  postgres_data:
+    name: safestream_postgres_data
+  redis_data:
+    name: safestream_redis_data
+  minio_data:
+    name: safestream_minio_data
+  meilisearch_data:
+    name: safestream_meilisearch_data
+  ollama_data:
+    name: safestream_ollama_data
+  web_node_modules:
+    name: safestream_web_node_modules
+  video_processing:
+    name: safestream_video_processing
+
+networks:
+  safestream:
+    name: safestream_network
+    driver: bridge

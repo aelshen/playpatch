@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(pnpm install)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(pnpm prisma db seed:*)",
+      "Bash(tsx:*)",
+      "Bash(pnpm tsx:*)",
+      "Bash(docker ps:*)",
+      "Bash(DATABASE_URL=\"postgresql://safestream:your_secure_password_here@localhost:5432/safestream\" pnpm tsx:*)",
+      "Bash(DATABASE_URL=\"postgresql://safestream:your_secure_password_here@localhost:5432/safestream\" pnpm prisma migrate:*)",
+      "Bash(DATABASE_URL=\"postgresql://safestream:safestream_dev@localhost:5432/safestream\" pnpm tsx:*)",
+      "Bash(DATABASE_URL=\"postgresql://safestream:safestream_dev@localhost:5432/safestream\" pnpm prisma migrate deploy:*)",
+      "Bash(docker compose:*)",
+      "Bash(pnpm prisma migrate deploy:*)"
+    ]
+  }
+}

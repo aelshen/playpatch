@@ -1,0 +1,51 @@
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build outputs
+.next
+dist
+build
+out
+
+# Cache
+.turbo
+.eslintcache
+
+# Testing
+coverage
+.nyc_output
+
+# Environment files
+.env
+.env*.local
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+!README.md
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Development
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+backups
+uploads
+videos
+thumbnails

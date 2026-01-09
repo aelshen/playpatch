@@ -1,0 +1,73 @@
+# Dockerfile for background workers
+
+FROM node:20-alpine AS base
+
+# Install system dependencies for video processing
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    ffmpeg \
+    git
+
+# Install yt-dlp for YouTube downloads
+RUN pip3 install --break-system-packages yt-dlp
+
+# Optional: Install Whisper for local transcription
+# RUN pip3 install --break-system-packages openai-whisper
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# ===================================
+# Dependencies Stage
+# ===================================
+FROM base AS deps
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY turbo.json ./
+COPY packages/workers/package.json ./packages/workers/
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/web/package.json ./apps/web/
+
+RUN pnpm install --frozen-lockfile
+
+# ===================================
+# Builder Stage
+# ===================================
+FROM base AS builder
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/workers/node_modules ./packages/workers/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+
+COPY . .
+
+# Build packages
+RUN pnpm build --filter=@safestream/shared
+RUN pnpm build --filter=@safestream/workers
+
+# ===================================
+# Production Stage
+# ===================================
+FROM base AS production
+
+ENV NODE_ENV production
+
+WORKDIR /app
+
+# Copy built packages
+COPY --from=builder /app/packages/workers/dist ./packages/workers/dist
+COPY --from=builder /app/packages/workers/node_modules ./packages/workers/node_modules
+COPY --from=builder /app/packages/workers/package.json ./packages/workers/package.json
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+
+# Copy Prisma client (needed for database access)
+COPY --from=builder /app/apps/web/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/apps/web/node_modules/@prisma ./node_modules/@prisma
+
+WORKDIR /app/packages/workers
+
+CMD ["node", "dist/index.js"]

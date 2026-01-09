@@ -1,0 +1,71 @@
+version: '3.8'
+
+# Development overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"  # Use 5433 on host to avoid conflict with local PostgreSQL
+    environment:
+      POSTGRES_PASSWORD: safestream_dev
+
+  redis:
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    # No password in dev for simplicity
+
+  minio:
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+
+  meilisearch:
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_ENV: development
+
+  ollama:
+    ports:
+      - "11434:11434"
+
+  # Web application (optional - can run locally with pnpm dev)
+  # Uncomment to run in Docker
+  # web:
+  #   build:
+  #     context: ../..
+  #     dockerfile: infrastructure/docker/Dockerfile.web
+  #     target: development
+  #   container_name: safestream-web
+  #   environment:
+  #     - NODE_ENV=development
+  #     - DATABASE_URL=postgresql://safestream:safestream_dev@postgres:5432/safestream
+  #     - REDIS_URL=redis://redis:6379
+  #     - MINIO_ENDPOINT=minio
+  #     - MINIO_PORT=9000
+  #     - MINIO_ACCESS_KEY=minio_admin
+  #     - MINIO_SECRET_KEY=minio_password
+  #     - MEILISEARCH_URL=http://meilisearch:7700
+  #     - MEILISEARCH_KEY=master_key_change_me
+  #     - OLLAMA_URL=http://ollama:11434
+  #     - NEXTAUTH_SECRET=dev_secret_change_me
+  #     - NEXTAUTH_URL=http://localhost:3000
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ../../apps/web:/app/apps/web
+  #     - web_node_modules:/app/apps/web/node_modules
+  #     - ../../packages:/app/packages
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - safestream
+  #   command: pnpm dev
