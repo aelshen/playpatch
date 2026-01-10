@@ -27,7 +27,8 @@
       "Bash(npx tsx:*)",
       "Bash(lsof:*)",
       "Bash(pkill:*)",
-      "Bash(npx prisma db execute:*)"
+      "Bash(npx prisma db execute:*)",
+      "Bash(ls:*)"
     ]
   }
 }
