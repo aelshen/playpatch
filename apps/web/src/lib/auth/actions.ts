@@ -23,7 +23,7 @@ export type LoginState = {
  * Login action
  */
 export async function loginAction(
-  prevState: LoginState | null,
+  _prevState: LoginState | null,
   formData: FormData
 ): Promise<LoginState> {
   try {
@@ -35,7 +35,7 @@ export async function loginAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 

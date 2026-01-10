@@ -16,7 +16,7 @@ import { prisma } from '@/lib/db/client';
 import { uploadFile } from '@/lib/storage/client';
 import { logger } from '@/lib/logger';
 import { videoTranscodeQueue } from '@/lib/queue/client';
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 
 const execAsync = promisify(exec);
 
@@ -101,15 +101,18 @@ async function downloadThumbnail(
     }
 
     const buffer = await response.arrayBuffer();
-    const thumbnailPath = `thumbnails/${videoId}.jpg`;
+    const thumbnailKey = `${videoId}.jpg`;
 
     // Upload to storage
-    await uploadFile({
-      buffer: Buffer.from(buffer),
-      key: thumbnailPath,
-      contentType: 'image/jpeg',
-    });
+    const { uploadBuffer, BUCKETS } = await import('@/lib/storage/client');
+    await uploadBuffer(
+      BUCKETS.THUMBNAILS,
+      thumbnailKey,
+      Buffer.from(buffer),
+      { 'Content-Type': 'image/jpeg' }
+    );
 
+    const thumbnailPath = `thumbnails/${thumbnailKey}`;
     logger.info({ videoId, thumbnailPath }, 'Thumbnail uploaded');
 
     return thumbnailPath;
@@ -169,15 +172,17 @@ async function processVideoDownload(job: Job<VideoDownloadJobData>) {
     // Upload to storage
     logger.info({ videoId, fileSize }, 'Uploading video to storage');
 
-    const videoKey = `videos/${familyId}/${videoId}/original.${format}`;
+    const videoKey = `${familyId}/${videoId}/original.${format}`;
     const fs = require('fs');
     const fileBuffer = fs.readFileSync(filePath);
 
-    await uploadFile({
-      buffer: fileBuffer,
-      key: videoKey,
-      contentType: 'video/mp4',
-    });
+    const { uploadBuffer, BUCKETS } = await import('@/lib/storage/client');
+    await uploadBuffer(
+      BUCKETS.VIDEOS,
+      videoKey,
+      fileBuffer,
+      { 'Content-Type': 'video/mp4' }
+    );
 
     logger.info({ videoId, videoKey }, 'Video uploaded to storage');
 
@@ -188,8 +193,8 @@ async function processVideoDownload(job: Job<VideoDownloadJobData>) {
       where: { id: videoId },
       data: {
         status: 'PROCESSING',
-        videoPath: videoKey,
-        fileSizeBytes: BigInt(fileSize),
+        localPath: `videos/${videoKey}`,
+        isDownloaded: true,
       },
     });
 
@@ -237,12 +242,12 @@ async function processVideoDownload(job: Job<VideoDownloadJobData>) {
  * Create and start the video download worker
  */
 export function createVideoDownloadWorker() {
-  const redisConnection = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
   });
 
   const worker = new Worker('video-download', processVideoDownload, {
-    connection: redisConnection as any,
+    connection: redisConnection,
     concurrency: 2, // Process 2 downloads at a time
     limiter: {
       max: 10, // Max 10 jobs

@@ -37,7 +37,7 @@
     "docker:down": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml down",
     "docker:logs": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml logs -f",
     "docker:clean": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml down -v",
-    "workers:dev": "cd packages/workers && pnpm dev",
+    "workers:dev": "cd apps/web && pnpm workers",
     "ollama:pull": "docker exec -it safestream-ollama ollama pull llama3.1:8b",
     "search:init": "cd apps/web && pnpm tsx scripts/init-search.ts"
   },

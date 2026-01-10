@@ -111,7 +111,7 @@ export default async function AdminDashboard() {
         {/* Quick Actions */}
         <div className="mt-8 rounded-lg bg-white p-6 shadow">
           <h2 className="mb-4 text-xl font-semibold text-gray-900">Quick Actions</h2>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Link
               href="/profiles"
               className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 text-center hover:border-blue-300 hover:bg-blue-100"
@@ -135,6 +135,14 @@ export default async function AdminDashboard() {
               <div className="mb-2 text-3xl">🎬</div>
               <p className="font-medium text-gray-900">Manage Content</p>
               <p className="text-sm text-gray-600">View library</p>
+            </Link>
+            <Link
+              href="/admin/queue"
+              className="rounded-lg border-2 border-orange-200 bg-orange-50 p-4 text-center hover:border-orange-300 hover:bg-orange-100"
+            >
+              <div className="mb-2 text-3xl">⚙️</div>
+              <p className="font-medium text-gray-900">Queue Monitor</p>
+              <p className="text-sm text-gray-600">Background jobs</p>
             </Link>
           </div>
         </div>

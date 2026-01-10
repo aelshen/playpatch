@@ -12,9 +12,9 @@ import { writeFile, unlink, mkdir, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '@/lib/db/client';
-import { downloadFile, uploadFile } from '@/lib/storage/client';
+import { downloadFile, uploadBuffer, BUCKETS } from '@/lib/storage/client';
 import { logger } from '@/lib/logger';
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 
 const execAsync = promisify(exec);
 
@@ -193,7 +193,8 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
     const inputPath = join(workDir, 'input.mp4');
     logger.info({ sourceKey, inputPath }, 'Downloading source video');
 
-    const sourceBuffer = await downloadFile(sourceKey);
+    // sourceKey format: "familyId/videoId/original.mp4"
+    const sourceBuffer = await downloadFile(BUCKETS.VIDEOS, sourceKey);
     await writeFile(inputPath, sourceBuffer);
 
     await job.updateProgress(20);
@@ -222,11 +223,12 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
         ? 'application/vnd.apple.mpegurl'
         : 'video/mp2t';
 
-      await uploadFile({
-        buffer: segmentBuffer,
-        key: `${hlsBaseKey}/${segmentFile}`,
-        contentType,
-      });
+      await uploadBuffer(
+        BUCKETS.VIDEOS,
+        `${hlsBaseKey}/${segmentFile}`,
+        segmentBuffer,
+        { 'Content-Type': contentType }
+      );
     }
 
     await job.updateProgress(85);
@@ -239,11 +241,12 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
         const fs = require('fs');
         const thumbBuffer = fs.readFileSync(thumbPath);
 
-        await uploadFile({
-          buffer: thumbBuffer,
-          key: `videos/${familyId}/${videoId}/thumbnails/${thumbFile}`,
-          contentType: 'image/jpeg',
-        });
+        await uploadBuffer(
+          BUCKETS.VIDEOS,
+          `${familyId}/${videoId}/thumbnails/${thumbFile}`,
+          thumbBuffer,
+          { 'Content-Type': 'image/jpeg' }
+        );
       }
     }
 
@@ -255,7 +258,7 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
       data: {
         status: 'READY',
         hlsPath: `${hlsBaseKey}/master.m3u8`,
-        hlsMasterPlaylist: `${hlsBaseKey}/master.m3u8`,
+        isTranscoded: true,
       },
     });
 
@@ -293,12 +296,12 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
  * Create and start the video transcoding worker
  */
 export function createVideoTranscodeWorker() {
-  const redisConnection = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
   });
 
   const worker = new Worker('video-transcode', processVideoTranscode, {
-    connection: redisConnection as any,
+    connection: redisConnection,
     concurrency: 1, // Process 1 transcoding at a time (CPU intensive)
     limiter: {
       max: 5,

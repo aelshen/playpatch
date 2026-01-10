@@ -15,6 +15,8 @@ import {
   approveVideo,
   rejectVideo,
 } from '@/lib/db/queries/videos';
+import { prisma } from '@/lib/db/client';
+import { logger } from '@/lib/logger';
 
 const createVideoSchema = z.object({
   sourceUrl: z.string().url('Invalid URL'),
@@ -55,7 +57,7 @@ export type VideoActionState = {
  * Create a new video record (manual entry)
  */
 export async function createVideoAction(
-  prevState: VideoActionState | null,
+  _prevState: VideoActionState | null,
   formData: FormData
 ): Promise<VideoActionState> {
   try {
@@ -76,7 +78,7 @@ export async function createVideoAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 
@@ -100,7 +102,7 @@ export async function createVideoAction(
  * Update video metadata
  */
 export async function updateVideoAction(
-  prevState: VideoActionState | null,
+  _prevState: VideoActionState | null,
   formData: FormData
 ): Promise<VideoActionState> {
   try {
@@ -119,7 +121,7 @@ export async function updateVideoAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 
@@ -143,7 +145,7 @@ export async function updateVideoAction(
  * Approve a video for viewing
  */
 export async function approveVideoAction(
-  prevState: VideoActionState | null,
+  _prevState: VideoActionState | null,
   formData: FormData
 ): Promise<VideoActionState> {
   try {
@@ -159,13 +161,42 @@ export async function approveVideoAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 
     const { videoId, ...data } = validatedFields.data;
 
+    // Get video info to check if we need to queue download
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+      select: {
+        sourceUrl: true,
+        sourceType: true,
+        localPath: true,
+      },
+    });
+
+    if (!video) {
+      return { error: 'Video not found' };
+    }
+
+    // Approve the video
     await approveVideo(videoId, familyId, user.id, data);
+
+    // If video hasn't been downloaded yet, queue the download
+    if (!video.localPath) {
+      const { videoDownloadQueue } = await import('@/lib/queue/client');
+
+      await videoDownloadQueue.add('download-video', {
+        videoId,
+        sourceUrl: video.sourceUrl,
+        sourceType: video.sourceType,
+        familyId,
+      });
+
+      logger.info({ videoId }, 'Queued video download after approval');
+    }
 
     revalidatePath('/admin/content');
     revalidatePath('/admin/content/approval');
@@ -200,6 +231,61 @@ export async function rejectVideoAction(
     console.error('Reject video error:', error);
     return {
       error: 'Failed to reject video. Please try again.',
+    };
+  }
+}
+
+/**
+ * Retry a failed video download
+ */
+export async function retryVideoDownloadAction(videoId: string): Promise<VideoActionState> {
+  try {
+    await getCurrentUser();
+    const familyId = await getCurrentFamilyId();
+
+    // Get video info
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+      select: {
+        sourceUrl: true,
+        sourceType: true,
+        status: true,
+      },
+    });
+
+    if (!video) {
+      return { error: 'Video not found' };
+    }
+
+    // Reset video status to DOWNLOADING
+    await prisma.video.update({
+      where: { id: videoId },
+      data: {
+        status: 'DOWNLOADING',
+        notes: null, // Clear previous error message
+      },
+    });
+
+    // Queue the download
+    const { videoDownloadQueue } = await import('@/lib/queue/client');
+
+    await videoDownloadQueue.add('download-video', {
+      videoId,
+      sourceUrl: video.sourceUrl,
+      sourceType: video.sourceType,
+      familyId,
+    });
+
+    logger.info({ videoId }, 'Retrying video download');
+
+    revalidatePath('/admin/content');
+    revalidatePath(`/admin/content/${videoId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Retry video download error:', error);
+    return {
+      error: 'Failed to retry video download. Please try again.',
     };
   }
 }

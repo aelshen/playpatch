@@ -15,7 +15,9 @@
       "Bash(DATABASE_URL=\"postgresql://safestream:safestream_dev@localhost:5432/safestream\" pnpm tsx:*)",
       "Bash(DATABASE_URL=\"postgresql://safestream:safestream_dev@localhost:5432/safestream\" pnpm prisma migrate deploy:*)",
       "Bash(docker compose:*)",
-      "Bash(pnpm prisma migrate deploy:*)"
+      "Bash(pnpm prisma migrate deploy:*)",
+      "Bash(pnpm test:*)",
+      "Bash(curl:*)"
     ]
   }
 }

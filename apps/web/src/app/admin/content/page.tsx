@@ -24,6 +24,19 @@ export default async function ContentLibraryPage({
 
   const pendingCount = await getPendingApprovalVideos(familyId).then((v) => v.length);
 
+  // Get status counts
+  const awaitingApproval = videos.filter((v) => v.approvalStatus === 'PENDING').length;
+  const downloading = videos.filter((v) => v.status === 'DOWNLOADING').length;
+  const processing = videos.filter((v) => v.status === 'PROCESSING').length;
+  const readyToWatch = videos.filter(
+    (v) => v.approvalStatus === 'APPROVED' && (v as any).localPath
+  ).length;
+  const errors = videos.filter((v) => v.status === 'ERROR').length;
+
+  // Get recent imports (last 24 hours)
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentImports = videos.filter((v) => new Date(v.createdAt) > oneDayAgo);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
@@ -54,36 +67,106 @@ export default async function ContentLibraryPage({
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Recent Imports Alert */}
+        {recentImports.length > 0 && (
+          <div className="mb-6 rounded-lg bg-blue-50 border-2 border-blue-200 p-4">
+            <div className="flex items-start space-x-3">
+              <div className="text-2xl">📥</div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900">Recent Imports (Last 24 Hours)</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  {recentImports.length} video{recentImports.length !== 1 ? 's' : ''} imported recently
+                </p>
+                <div className="mt-3 space-y-2">
+                  {recentImports.slice(0, 5).map((video) => (
+                    <Link
+                      key={video.id}
+                      href={`/admin/content/${video.id}`}
+                      className="block bg-white rounded-lg p-3 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{video.title}</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Imported {new Date(video.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="ml-3 flex items-center space-x-2">
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            video.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            video.status === 'DOWNLOADING' ? 'bg-blue-100 text-blue-800' :
+                            video.status === 'PROCESSING' ? 'bg-purple-100 text-purple-800' :
+                            video.status === 'READY' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {video.status}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {recentImports.length > 5 && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    Showing 5 of {recentImports.length} recent imports
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
+        <div className="mb-6 grid gap-4 md:grid-cols-5">
           <div className="rounded-lg bg-white p-4 shadow">
             <p className="text-sm text-gray-600">Total Videos</p>
             <p className="text-2xl font-bold text-gray-900">{total}</p>
           </div>
           <div className="rounded-lg bg-yellow-50 p-4 shadow">
-            <p className="text-sm text-gray-600">Pending Approval</p>
-            <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
-            {pendingCount > 0 && (
+            <p className="text-sm text-gray-600">Awaiting Approval</p>
+            <p className="text-2xl font-bold text-yellow-600">{awaitingApproval}</p>
+            {awaitingApproval > 0 && (
               <Link
                 href="/admin/content/approval"
-                className="mt-2 text-sm font-medium text-yellow-700 hover:underline"
+                className="text-xs text-yellow-700 hover:underline mt-1 block"
               >
                 Review now →
               </Link>
             )}
           </div>
-          <div className="rounded-lg bg-green-50 p-4 shadow">
-            <p className="text-sm text-gray-600">Approved</p>
-            <p className="text-2xl font-bold text-green-600">
-              {videos.filter((v) => v.approvalStatus === 'APPROVED').length}
-            </p>
+          <div className="rounded-lg bg-blue-50 p-4 shadow">
+            <p className="text-sm text-gray-600">Downloading</p>
+            <p className="text-2xl font-bold text-blue-600">{downloading}</p>
+            {downloading > 0 && (
+              <p className="text-xs text-blue-700 mt-1">In progress</p>
+            )}
           </div>
-          <div className="rounded-lg bg-gray-50 p-4 shadow">
+          <div className="rounded-lg bg-purple-50 p-4 shadow">
             <p className="text-sm text-gray-600">Processing</p>
-            <p className="text-2xl font-bold text-gray-600">
-              {videos.filter((v) => v.status !== 'READY' && v.status !== 'ERROR').length}
-            </p>
+            <p className="text-2xl font-bold text-purple-600">{processing}</p>
+            {processing > 0 && (
+              <p className="text-xs text-purple-700 mt-1">Being transcoded</p>
+            )}
           </div>
+          <div className="rounded-lg bg-green-50 p-4 shadow">
+            <p className="text-sm text-gray-600">Ready to Watch</p>
+            <p className="text-2xl font-bold text-green-600">{readyToWatch}</p>
+            {readyToWatch > 0 && (
+              <p className="text-xs text-green-700 mt-1">Available now</p>
+            )}
+          </div>
+          {errors > 0 && (
+            <div className="rounded-lg bg-red-50 p-4 shadow">
+              <p className="text-sm text-gray-600">Errors</p>
+              <p className="text-2xl font-bold text-red-600">{errors}</p>
+              <Link
+                href="/admin/content?status=ERROR"
+                className="text-xs text-red-700 hover:underline mt-1 block"
+              >
+                View errors →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Filters */}

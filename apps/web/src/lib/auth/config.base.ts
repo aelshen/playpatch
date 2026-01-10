@@ -51,6 +51,7 @@ export const authConfigBase = {
         session.user = {
           id: token.id as string,
           email: token.email as string,
+          emailVerified: null,
           name: token.name as string,
           role: token.role as string,
           familyId: token.familyId as string,
@@ -66,4 +67,5 @@ export const authConfigBase = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  providers: [], // Will be overridden in config.ts
 } satisfies NextAuthConfig;

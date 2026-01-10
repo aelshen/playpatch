@@ -10,7 +10,7 @@
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next .turbo node_modules",
-    "workers": "tsx src/workers/index.ts",
+    "workers": "tsx watch src/workers/index.ts",
     "workers:download": "tsx src/workers/video-download.ts",
     "workers:transcode": "tsx src/workers/video-transcode.ts"
   },

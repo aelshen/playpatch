@@ -124,7 +124,7 @@ export async function rateLimit(
 
   if (count >= maxRequests) {
     const oldestTimestamp = await redis.zrange(key, 0, 0, 'WITHSCORES');
-    const resetAt = new Date(parseInt(oldestTimestamp[1]) + windowMs);
+    const resetAt = new Date(parseInt(oldestTimestamp[1] || String(now)) + windowMs);
     return { allowed: false, remaining: 0, resetAt };
   }
 

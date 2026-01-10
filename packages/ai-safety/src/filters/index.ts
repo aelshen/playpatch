@@ -11,7 +11,7 @@ export interface FilterResult {
 /**
  * Filter child input before sending to LLM
  */
-export function filterInput(input: string): FilterResult {
+export function filterInput(_input: string): FilterResult {
   // TODO: Implement input filtering
   // - Profanity detection
   // - PII detection
@@ -24,7 +24,7 @@ export function filterInput(input: string): FilterResult {
 /**
  * Filter LLM output before showing to child
  */
-export function filterOutput(output: string, childAge: number): FilterResult {
+export function filterOutput(_output: string, _childAge: number): FilterResult {
   // TODO: Implement output filtering
   // - Inappropriate content detection
   // - External link removal

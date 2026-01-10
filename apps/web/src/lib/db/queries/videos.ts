@@ -103,6 +103,7 @@ export async function createVideo(data: {
   ageRating?: string;
   categories?: string[];
   topics?: string[];
+  status?: string; // Optional: defaults to 'PENDING'
 }) {
   return await prisma.video.create({
     data: {
@@ -118,7 +119,7 @@ export async function createVideo(data: {
       ageRating: (data.ageRating || 'AGE_7_PLUS') as any,
       categories: data.categories || [],
       topics: data.topics || [],
-      status: 'PENDING',
+      status: (data.status || 'PENDING') as any,
       approvalStatus: 'PENDING',
     },
   });

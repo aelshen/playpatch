@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import { formatDuration } from '@/lib/utils/shared';
 import { ApprovalCard } from './approval-card';
 
 interface Video {

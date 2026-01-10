@@ -34,7 +34,7 @@ export type ImportVideoState = {
  * Import a video from YouTube
  */
 export async function importYouTubeVideoAction(
-  prevState: ImportVideoState | null,
+  _prevState: ImportVideoState | null,
   formData: FormData
 ): Promise<ImportVideoState> {
   try {
@@ -48,7 +48,7 @@ export async function importYouTubeVideoAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 
@@ -101,10 +101,10 @@ export async function importYouTubeVideoAction(
     if (!channel) {
       channel = await prisma.channel.create({
         data: {
+          familyId,
           name: videoInfo.channelName,
           sourceType: 'YOUTUBE',
           sourceId: videoInfo.channelId,
-          sourceUrl: `https://www.youtube.com/channel/${videoInfo.channelId}`,
           description: '',
         },
       });
@@ -115,7 +115,8 @@ export async function importYouTubeVideoAction(
     const suggestedAgeRating = suggestAgeRating(videoInfo);
     const suggestedCategories = mapCategories(videoInfo.categories, videoInfo.tags);
 
-    // Create video record
+    // Create video record (READY status since we can preview via YouTube embed)
+    // Download will be queued only AFTER approval
     const video = await createVideo({
       familyId,
       channelId: channel.id,
@@ -129,27 +130,22 @@ export async function importYouTubeVideoAction(
       ageRating: suggestedAgeRating,
       categories: suggestedCategories,
       topics: videoInfo.tags.slice(0, 10), // Limit to 10 tags
+      status: 'READY', // Mark as READY so it can be reviewed/approved
     });
 
     logger.info({ videoId: video.id, title: video.title }, 'Created video record');
 
-    // Queue download job
-    await videoDownloadQueue.add('download-video', {
-      videoId: video.id,
-      sourceUrl: url,
-      sourceType: 'YOUTUBE',
-      familyId,
-    });
-
-    logger.info({ videoId: video.id }, 'Queued video download job');
+    // NOTE: Download is NOT queued yet - it will be queued after approval
+    // This prevents downloading videos that may be rejected
 
     revalidatePath('/admin/content');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/content/approval');
 
     return {
       success: true,
       videoId: video.id,
-      message: 'Video imported successfully! Download has been queued.',
+      message: 'Video imported successfully! Review and approve it to start the download.',
     };
   } catch (error) {
     logger.error({ error }, 'Import video error');

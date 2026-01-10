@@ -39,7 +39,7 @@ export type ProfileActionState = {
  * Create a new child profile
  */
 export async function createChildProfileAction(
-  prevState: ProfileActionState | null,
+  _prevState: ProfileActionState | null,
   formData: FormData
 ): Promise<ProfileActionState> {
   try {
@@ -56,7 +56,7 @@ export async function createChildProfileAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 
@@ -87,7 +87,7 @@ export async function createChildProfileAction(
  * Update a child profile
  */
 export async function updateChildProfileAction(
-  prevState: ProfileActionState | null,
+  _prevState: ProfileActionState | null,
   formData: FormData
 ): Promise<ProfileActionState> {
   try {
@@ -105,7 +105,7 @@ export async function updateChildProfileAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 

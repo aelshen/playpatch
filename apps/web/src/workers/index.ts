@@ -1,51 +1,51 @@
 /**
- * Worker Manager
- * Starts all background workers
+ * Background Workers Entry Point
+ * Starts all video processing workers
  */
 
 import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
 import { logger } from '@/lib/logger';
+import { initializeStorage } from '@/lib/storage/client';
 
-async function startWorkers() {
-  logger.info('Starting all workers...');
+async function main() {
+  logger.info('SafeStream Workers starting...');
 
   try {
+    // Initialize storage backend
+    logger.info('Initializing storage backend...');
+    await initializeStorage();
+    logger.info('✓ Storage backend initialized');
+
     // Start video download worker
     const downloadWorker = createVideoDownloadWorker();
     logger.info('✓ Video download worker started');
 
-    // Start video transcoding worker
+    // Start video transcode worker
     const transcodeWorker = createVideoTranscodeWorker();
-    logger.info('✓ Video transcoding worker started');
+    logger.info('✓ Video transcode worker started');
 
-    logger.info('All workers started successfully');
+    logger.info('All workers initialized and ready');
 
     // Graceful shutdown
     const shutdown = async () => {
       logger.info('Shutting down workers...');
-
       await downloadWorker.close();
-      logger.info('✓ Video download worker stopped');
-
       await transcodeWorker.close();
-      logger.info('✓ Video transcoding worker stopped');
-
-      logger.info('All workers stopped');
+      logger.info('Workers stopped');
       process.exit(0);
     };
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
+
   } catch (error) {
-    logger.error({ error }, 'Failed to start workers');
+    logger.error(error, 'Failed to initialize workers');
     process.exit(1);
   }
 }
 
-// Start if run directly
-if (require.main === module) {
-  startWorkers();
-}
-
-export { startWorkers };
+main().catch((error) => {
+  logger.error(error, 'Failed to start workers');
+  process.exit(1);
+});

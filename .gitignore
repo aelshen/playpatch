@@ -64,6 +64,7 @@ backups/
 uploads/
 videos/
 thumbnails/
+storage/
 
 # Test files
 playwright-report/

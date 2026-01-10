@@ -1,36 +1,31 @@
 /**
- * MinIO / S3 Storage Client
- * SSK-005: MinIO/S3 Integration
+ * Storage Client
+ * Supports both local filesystem and MinIO/S3 storage
  */
 
-import { Client } from 'minio';
+import { StorageBackend, BUCKETS } from './interface';
+import { LocalStorageBackend } from './local';
 
-const minioClient = new Client({
-  endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-  port: parseInt(process.env.MINIO_PORT || '9000'),
-  useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'minio_admin',
-  secretKey: process.env.MINIO_SECRET_KEY || 'minio_password',
-});
+// Determine which storage backend to use based on environment
+const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local'; // 'local' or 'minio'
 
-export const BUCKETS = {
-  VIDEOS: process.env.MINIO_BUCKET_VIDEOS || 'videos',
-  THUMBNAILS: process.env.MINIO_BUCKET_THUMBNAILS || 'thumbnails',
-  AVATARS: process.env.MINIO_BUCKET_AVATARS || 'avatars',
-  JOURNALS: 'journals',
-} as const;
+// Initialize the storage backend
+let storageBackend: StorageBackend;
+
+if (STORAGE_TYPE === 'local') {
+  storageBackend = new LocalStorageBackend();
+} else {
+  // MinIO backend - dynamically import to avoid errors when not using it
+  throw new Error('MinIO backend not yet migrated - use STORAGE_TYPE=local');
+}
+
+export { BUCKETS };
 
 /**
- * Initialize buckets - creates them if they don't exist
+ * Initialize storage - creates buckets/directories if they don't exist
  */
-export async function initializeBuckets() {
-  for (const bucket of Object.values(BUCKETS)) {
-    const exists = await minioClient.bucketExists(bucket);
-    if (!exists) {
-      await minioClient.makeBucket(bucket, 'us-east-1');
-      console.log(`Created bucket: ${bucket}`);
-    }
-  }
+export async function initializeStorage() {
+  await storageBackend.initialize();
 }
 
 /**
@@ -42,7 +37,7 @@ export async function uploadFile(
   filePath: string,
   metadata?: Record<string, string>
 ): Promise<void> {
-  await minioClient.fPutObject(bucket, objectName, filePath, metadata);
+  await storageBackend.uploadFile(bucket, objectName, filePath, metadata);
 }
 
 /**
@@ -54,66 +49,54 @@ export async function uploadBuffer(
   buffer: Buffer,
   metadata?: Record<string, string>
 ): Promise<void> {
-  await minioClient.putObject(bucket, objectName, buffer, buffer.length, metadata);
+  await storageBackend.uploadBuffer(bucket, objectName, buffer, metadata);
 }
 
 /**
  * Download a file
  */
 export async function downloadFile(bucket: string, objectName: string): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  const stream = await minioClient.getObject(bucket, objectName);
-
-  return new Promise((resolve, reject) => {
-    stream.on('data', (chunk) => chunks.push(chunk));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
-    stream.on('error', reject);
-  });
+  return await storageBackend.downloadFile(bucket, objectName);
 }
 
 /**
- * Generate presigned URL for temporary access
+ * Get file URL (presigned for cloud storage, API path for local)
  */
-export async function getPresignedUrl(
+export async function getFileUrl(
   bucket: string,
   objectName: string,
   expiry: number = 3600 // 1 hour default
 ): Promise<string> {
-  return await minioClient.presignedGetObject(bucket, objectName, expiry);
+  return await storageBackend.getFileUrl(bucket, objectName, expiry);
 }
 
 /**
  * Delete a file
  */
 export async function deleteFile(bucket: string, objectName: string): Promise<void> {
-  await minioClient.removeObject(bucket, objectName);
+  await storageBackend.deleteFile(bucket, objectName);
 }
 
 /**
  * List files in bucket
  */
 export async function listFiles(bucket: string, prefix?: string): Promise<string[]> {
-  const files: string[] = [];
-  const stream = minioClient.listObjects(bucket, prefix, true);
-
-  return new Promise((resolve, reject) => {
-    stream.on('data', (obj) => files.push(obj.name));
-    stream.on('end', () => resolve(files));
-    stream.on('error', reject);
-  });
+  return await storageBackend.listFiles(bucket, prefix);
 }
 
 /**
  * Check if file exists
  */
 export async function fileExists(bucket: string, objectName: string): Promise<boolean> {
-  try {
-    await minioClient.statObject(bucket, objectName);
-    return true;
-  } catch {
-    return false;
-  }
+  return await storageBackend.fileExists(bucket, objectName);
 }
 
-export { minioClient };
-export default minioClient;
+/**
+ * Get the storage backend instance (for advanced usage)
+ */
+export function getStorageBackend(): StorageBackend {
+  return storageBackend;
+}
+
+// Export for backwards compatibility
+export { storageBackend as default };

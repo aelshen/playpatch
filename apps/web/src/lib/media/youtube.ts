@@ -154,7 +154,6 @@ export async function downloadThumbnail(
  */
 export function suggestAgeRating(info: YouTubeVideoInfo): string {
   const title = info.title.toLowerCase();
-  const description = info.description.toLowerCase();
   const tags = info.tags.map(t => t.toLowerCase());
   const categories = info.categories.map(c => c.toLowerCase());
 

@@ -31,7 +31,7 @@ export type RegisterState = {
  * Register a new user and family
  */
 export async function registerAction(
-  prevState: RegisterState | null,
+  _prevState: RegisterState | null,
   formData: FormData
 ): Promise<RegisterState> {
   try {
@@ -46,7 +46,7 @@ export async function registerAction(
 
     if (!validatedFields.success) {
       return {
-        error: validatedFields.error.errors[0].message,
+        error: validatedFields.error.errors[0]?.message || 'Validation failed',
       };
     }
 

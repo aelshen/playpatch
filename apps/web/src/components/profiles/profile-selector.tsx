@@ -78,7 +78,7 @@ export function ProfileSelector({ profiles }: ProfileSelectorProps) {
     <>
       <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
         {profiles.map((profile) => {
-          const theme = themeColors[profile.theme] || themeColors.space;
+          const theme = themeColors[profile.theme] ?? themeColors.space;
 
           return (
             <button
@@ -88,7 +88,7 @@ export function ProfileSelector({ profiles }: ProfileSelectorProps) {
               className="group relative transform transition-all duration-200 hover:scale-105 disabled:opacity-50"
             >
               <div
-                className={`flex aspect-square items-center justify-center rounded-2xl bg-gradient-to-br ${theme.from} ${theme.to} shadow-lg group-hover:shadow-2xl`}
+                className={`flex aspect-square items-center justify-center rounded-2xl bg-gradient-to-br ${theme?.from ?? 'from-blue-400'} ${theme?.to ?? 'to-purple-500'} shadow-lg group-hover:shadow-2xl`}
               >
                 {profile.avatarUrl ? (
                   <img
@@ -97,7 +97,7 @@ export function ProfileSelector({ profiles }: ProfileSelectorProps) {
                     className="h-full w-full rounded-2xl object-cover"
                   />
                 ) : (
-                  <span className="text-7xl">{theme.emoji}</span>
+                  <span className="text-7xl">{theme?.emoji ?? '🚀'}</span>
                 )}
                 {profile.pin && (
                   <div className="absolute right-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow">
