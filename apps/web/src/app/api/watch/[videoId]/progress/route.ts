@@ -1,59 +1,19 @@
 /**
- * Watch Session Tracking API
+ * Watch Session Progress API
  * SSK-075: Video Player Component
  *
- * API endpoints for tracking video watch sessions
+ * API endpoint for updating watch progress
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentChildProfile } from '@/lib/auth/session';
 import {
-  createWatchSession,
   updateWatchProgress,
   markSessionComplete,
 } from '@/lib/db/queries/watch-sessions';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * POST /api/watch/[videoId]/start
- * Create a new watch session
- */
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: { videoId: string } }
-) {
-  try {
-    const { videoId } = params;
-
-    // Get current child profile
-    const childProfile = await getCurrentChildProfile();
-    if (!childProfile) {
-      return NextResponse.json(
-        { error: 'No child profile selected' },
-        { status: 401 }
-      );
-    }
-
-    // Create watch session
-    const session = await createWatchSession({
-      childId: childProfile.id,
-      videoId,
-    });
-
-    return NextResponse.json({
-      success: true,
-      sessionId: session.id,
-    });
-  } catch (error) {
-    logger.error({ error }, 'Failed to start watch session');
-    return NextResponse.json(
-      { error: 'Failed to start watch session' },
-      { status: 500 }
-    );
-  }
-}
 
 /**
  * PATCH /api/watch/[videoId]/progress
@@ -90,12 +50,16 @@ export async function PATCH(
       duration: duration ? Math.floor(duration) : undefined,
     });
 
+    logger.debug({ sessionId, lastPosition, duration }, 'Watch progress updated');
+
     // Check if video is almost complete (>90%)
     if (duration && lastPosition / duration > 0.9 && !session.completed) {
       await markSessionComplete({
         sessionId,
         duration: Math.floor(duration),
       });
+
+      logger.info({ sessionId }, 'Watch session marked as complete');
 
       return NextResponse.json({
         success: true,

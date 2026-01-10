@@ -31,10 +31,18 @@ export function TrackedVideoPlayer({
   const lastUpdateRef = useRef<number>(0);
   const lastPositionRef = useRef<number>(0);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isStartingSessionRef = useRef<boolean>(false);
 
   // Start a new watch session
   const startSession = useCallback(async () => {
-    if (hasStartedSession) return;
+    if (hasStartedSession || isStartingSessionRef.current) {
+      console.log('[Session] Session already started or starting, skipping');
+      return;
+    }
+
+    isStartingSessionRef.current = true;
+
+    console.log('[Session] Attempting to start session for video:', video.id);
 
     try {
       const response = await fetch(`/api/watch/${video.id}/start`, {
@@ -48,25 +56,33 @@ export function TrackedVideoPlayer({
         const data = await response.json();
         setSessionId(data.sessionId);
         setHasStartedSession(true);
-        console.log('[Session] Started:', data.sessionId);
+        console.log('[Session] Started successfully:', data.sessionId);
       } else {
-        console.error('[Session] Failed to start session');
+        const errorData = await response.json();
+        console.error('[Session] Failed to start session:', response.status, errorData);
+        isStartingSessionRef.current = false; // Reset on failure
       }
     } catch (error) {
       console.error('[Session] Error starting session:', error);
+      isStartingSessionRef.current = false; // Reset on error
     }
   }, [video.id, hasStartedSession]);
 
   // Update watch progress
   const updateProgress = useCallback(
     async (currentTime: number, duration: number) => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        console.log('[Session] Cannot update progress - no session ID');
+        return;
+      }
 
       // Debounce updates - only send if it's been at least 5 seconds since last update
       const now = Date.now();
       if (now - lastUpdateRef.current < 5000) {
         return;
       }
+
+      console.log('[Session] Updating progress:', { currentTime, duration, sessionId });
 
       try {
         const response = await fetch(`/api/watch/${video.id}/progress`, {
@@ -87,8 +103,13 @@ export function TrackedVideoPlayer({
           lastPositionRef.current = currentTime;
 
           if (data.completed) {
-            console.log('[Session] Video completed');
+            console.log('[Session] Video marked as completed');
+          } else {
+            console.log('[Session] Progress updated successfully');
           }
+        } else {
+          const errorData = await response.json();
+          console.error('[Session] Failed to update progress:', response.status, errorData);
         }
       } catch (error) {
         console.error('[Session] Error updating progress:', error);
@@ -102,6 +123,7 @@ export function TrackedVideoPlayer({
     (currentTime: number) => {
       // Start session on first play
       if (!hasStartedSession && currentTime > 0) {
+        console.log('[Session] Time update triggered, starting session. currentTime:', currentTime);
         startSession();
       }
     },
@@ -173,6 +195,23 @@ export function TrackedVideoPlayer({
       updateProgress(videoDuration, videoDuration);
     }
   }, [sessionId, videoDuration, updateProgress]);
+
+  // Also start session when video starts playing
+  useEffect(() => {
+    const videoElement = videoPlayerRef.current?.querySelector('video');
+    if (!videoElement) return;
+
+    const handlePlay = () => {
+      console.log('[Session] Video play event detected');
+      if (!hasStartedSession) {
+        console.log('[Session] Starting session from play event');
+        startSession();
+      }
+    };
+
+    videoElement.addEventListener('play', handlePlay);
+    return () => videoElement.removeEventListener('play', handlePlay);
+  }, [hasStartedSession, startSession]);
 
   return (
     <div ref={videoPlayerRef} className={className}>

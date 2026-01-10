@@ -96,6 +96,22 @@ export default async function AdminDashboard() {
             </div>
           </div>
 
+          {/* Analytics Card */}
+          <div className="rounded-lg bg-white p-6 shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Watch Analytics</h3>
+            <div className="mt-4">
+              <p className="text-sm text-gray-600">
+                View watch time and viewing patterns
+              </p>
+              <Link
+                href="/admin/analytics"
+                className="mt-3 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                View Analytics →
+              </Link>
+            </div>
+          </div>
+
           {/* Progress Card */}
           <div className="rounded-lg bg-green-50 p-6">
             <h3 className="text-lg font-semibold text-green-900">✅ Progress</h3>
@@ -111,7 +127,7 @@ export default async function AdminDashboard() {
         {/* Quick Actions */}
         <div className="mt-8 rounded-lg bg-white p-6 shadow">
           <h2 className="mb-4 text-xl font-semibold text-gray-900">Quick Actions</h2>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <Link
               href="/profiles"
               className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 text-center hover:border-blue-300 hover:bg-blue-100"
@@ -135,6 +151,14 @@ export default async function AdminDashboard() {
               <div className="mb-2 text-3xl">🎬</div>
               <p className="font-medium text-gray-900">Manage Content</p>
               <p className="text-sm text-gray-600">View library</p>
+            </Link>
+            <Link
+              href="/admin/analytics"
+              className="rounded-lg border-2 border-indigo-200 bg-indigo-50 p-4 text-center hover:border-indigo-300 hover:bg-indigo-100"
+            >
+              <div className="mb-2 text-3xl">📊</div>
+              <p className="font-medium text-gray-900">Watch Analytics</p>
+              <p className="text-sm text-gray-600">View reports</p>
             </Link>
             <Link
               href="/admin/queue"
