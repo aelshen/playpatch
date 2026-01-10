@@ -219,7 +219,7 @@ export function QueueMonitor() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Queue Information</h2>
 
         <div className="space-y-4">
-          {stats?.waiting > 0 && (
+          {stats?.waiting && stats.waiting > 0 && (
             <div className="flex items-center space-x-3">
               <div className="text-2xl">⏳</div>
               <div>
@@ -233,7 +233,7 @@ export function QueueMonitor() {
             </div>
           )}
 
-          {stats?.active > 0 && (
+          {stats?.active && stats.active > 0 && (
             <div className="flex items-center space-x-3">
               <div className="text-2xl">▶️</div>
               <div>
@@ -247,7 +247,7 @@ export function QueueMonitor() {
             </div>
           )}
 
-          {stats?.failed > 0 && (
+          {stats?.failed && stats.failed > 0 && (
             <div className="flex items-center space-x-3">
               <div className="text-2xl">❌</div>
               <div>

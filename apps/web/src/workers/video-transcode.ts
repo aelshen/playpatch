@@ -212,7 +212,7 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
     // Upload HLS files to storage
     logger.info({ videoId, fileCount: segmentPaths.length }, 'Uploading HLS files');
 
-    const hlsBaseKey = `videos/${familyId}/${videoId}/hls`;
+    const hlsBaseKey = `${familyId}/${videoId}/hls`;
 
     for (const segmentFile of segmentPaths) {
       const segmentPath = join(hlsDir, segmentFile);

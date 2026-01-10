@@ -5,6 +5,9 @@
 
 import { redirect } from 'next/navigation';
 import { getChildSession, clearChildSessionAction } from '@/lib/actions/profile-selection';
+import { prisma } from '@/lib/db/client';
+import { ChildVideoGrid } from '@/components/child/video-grid';
+import { getAllowedAgeRatings } from '@/lib/utils/age-rating';
 
 export default async function ExplorerHomePage() {
   const childSession = await getChildSession();
@@ -16,6 +19,31 @@ export default async function ExplorerHomePage() {
   if (childSession.uiMode !== 'EXPLORER') {
     redirect('/child/toddler');
   }
+
+  // Fetch approved videos appropriate for child's age
+  const childProfile = await prisma.childProfile.findUnique({
+    where: { id: childSession.profileId },
+  });
+
+  // Get age-appropriate videos
+  const allowedRatings = childProfile?.ageRating
+    ? getAllowedAgeRatings(childProfile.ageRating)
+    : ['AGE_2_PLUS', 'AGE_4_PLUS', 'AGE_7_PLUS', 'AGE_10_PLUS'];
+
+  const videos = await prisma.video.findMany({
+    where: {
+      status: 'READY',
+      approvalStatus: 'APPROVED',
+      ageRating: { in: allowedRatings },
+    },
+    include: {
+      channel: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 20,
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
@@ -48,28 +76,11 @@ export default async function ExplorerHomePage() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="rounded-xl bg-white p-8 text-center shadow-lg">
-          <div className="mb-6 text-6xl">🚀</div>
-          <h2 className="mb-4 text-2xl font-bold text-gray-900">
-            Explorer Mode Coming Soon!
-          </h2>
-          <p className="mb-6 text-lg text-gray-600">
-            Browse categories, search videos, and chat with AI helper
-          </p>
-          <div className="mx-auto max-w-xl rounded-lg bg-blue-50 p-4">
-            <p className="text-left text-sm text-gray-700">
-              <strong>Session Info:</strong>
-              <br />
-              Profile: {childSession.name} (Age {childSession.age})
-              <br />
-              Theme: {childSession.theme}
-              <br />
-              UI Mode: {childSession.uiMode}
-              <br />
-              AI Enabled: {childSession.aiEnabled ? 'Yes' : 'No'}
-            </p>
-          </div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Recommended Videos</h2>
+          <p className="text-gray-600">Watch your favorite videos!</p>
         </div>
+        <ChildVideoGrid videos={videos} />
       </main>
     </div>
   );

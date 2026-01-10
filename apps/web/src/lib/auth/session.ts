@@ -5,6 +5,8 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { cookies } from 'next/headers';
+import { prisma } from '@/lib/db/client';
 
 /**
  * Get current session (cached for request)
@@ -68,4 +70,31 @@ export async function requireAdmin() {
 export async function getCurrentFamilyId() {
   const user = await getCurrentUser();
   return user.familyId;
+}
+
+/**
+ * Get current child profile from session cookie
+ * Returns null if no child profile is selected
+ */
+export async function getCurrentChildProfile() {
+  const cookieStore = await cookies();
+  const childSessionCookie = cookieStore.get('child-session');
+
+  if (!childSessionCookie) {
+    return null;
+  }
+
+  try {
+    const childSession = JSON.parse(childSessionCookie.value);
+
+    // Fetch the full child profile from database
+    const childProfile = await prisma.childProfile.findUnique({
+      where: { id: childSession.profileId },
+    });
+
+    return childProfile;
+  } catch (error) {
+    console.error('Error parsing child session cookie:', error);
+    return null;
+  }
 }

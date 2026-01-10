@@ -193,7 +193,7 @@ async function processVideoDownload(job: Job<VideoDownloadJobData>) {
       where: { id: videoId },
       data: {
         status: 'PROCESSING',
-        localPath: `videos/${videoKey}`,
+        localPath: videoKey,
         isDownloaded: true,
       },
     });

@@ -9,7 +9,7 @@ import { videoDownloadQueue } from '@/lib/queue/client';
 import { prisma } from '@/lib/db/client';
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: { videoId: string } }
 ) {
   try {

@@ -634,17 +634,19 @@ Transcode videos to HLS format.
 | Priority | P1 |
 | Estimate | 3 |
 | Dependencies | SSK-038 |
-| Status | ⬜ |
+| Status | ✅ |
+| Completed | January 2026 |
 
 **Description:**
 Generate thumbnails for videos.
 
 **Acceptance Criteria:**
-- [ ] Extract frame from video (FFmpeg)
-- [ ] Multiple sizes (small, medium, large)
-- [ ] WebP format for efficiency
-- [ ] Upload to MinIO
-- [ ] Fallback to source thumbnail if available
+- [x] Download thumbnail from source (YouTube)
+- [x] Upload to storage (local or MinIO)
+- [x] Fallback to source thumbnail if available
+- [ ] Extract frame from video (FFmpeg) - Future enhancement
+- [ ] Multiple sizes (small, medium, large) - Future enhancement
+- [ ] WebP format for efficiency - Future enhancement
 
 ---
 

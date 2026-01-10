@@ -59,6 +59,9 @@ importers:
       framer-motion:
         specifier: ^11.0.3
         version: 11.18.2(react-dom@18.3.1)(react@18.3.1)
+      hls.js:
+        specifier: ^1.6.15
+        version: 1.6.15
       ioredis:
         specifier: ^5.3.2
         version: 5.9.1
@@ -102,6 +105,9 @@ importers:
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2
+      '@types/hls.js':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/node':
         specifier: ^20.11.19
         version: 20.19.27
@@ -896,6 +902,13 @@ packages:
     resolution: {integrity: sha512-6atioO8Y75fNcbmj0G7UjI9lXN2pQ/IGJ2FWT4a/btd0Lk9lQalHLKhkgKVZ3r+spnmWUKfbMi1GEe9wyHQfNQ==}
     dependencies:
       '@types/node': 20.19.27
+    dev: true
+
+  /@types/hls.js@1.0.0:
+    resolution: {integrity: sha512-EGY2QJefX+Z9XH4PAxI7RFoNqBlQEk16UpYR3kbr82CIgMX5SlMe0PjFdFV0JytRhyVPQCiwSyONuI6S1KdSag==}
+    deprecated: This is a stub types definition. hls.js provides its own type definitions, so you do not need this installed.
+    dependencies:
+      hls.js: 1.6.15
     dev: true
 
   /@types/json-schema@7.0.15:
@@ -2681,6 +2694,9 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
+
+  /hls.js@1.6.15:
+    resolution: {integrity: sha512-E3a5VwgXimGHwpRGV+WxRTKeSp2DW5DI5MWv34ulL3t5UNmyJWCQ1KmLEHbYzcfThfXG8amBL+fCYPneGHC4VA==}
 
   /https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}

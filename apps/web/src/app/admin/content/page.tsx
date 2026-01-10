@@ -4,7 +4,7 @@
  */
 
 import { getCurrentFamilyId } from '@/lib/auth/session';
-import { getVideosByFamily, getPendingApprovalVideos } from '@/lib/db/queries/videos';
+import { getVideosByFamily } from '@/lib/db/queries/videos';
 import { VideoGrid } from '@/components/admin/video-grid';
 import Link from 'next/link';
 
@@ -21,8 +21,6 @@ export default async function ContentLibraryPage({
     approvalStatus: searchParams.approval,
     limit: 50,
   });
-
-  const pendingCount = await getPendingApprovalVideos(familyId).then((v) => v.length);
 
   // Get status counts
   const awaitingApproval = videos.filter((v) => v.approvalStatus === 'PENDING').length;

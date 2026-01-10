@@ -17,7 +17,16 @@
       "Bash(docker compose:*)",
       "Bash(pnpm prisma migrate deploy:*)",
       "Bash(pnpm test:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(pnpm next build:*)",
+      "Bash(echo:*)",
+      "Bash(docker exec:*)",
+      "Bash(redis-cli:*)",
+      "Bash(sort:*)",
+      "Bash(npx tsx:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)"
     ]
   }
 }

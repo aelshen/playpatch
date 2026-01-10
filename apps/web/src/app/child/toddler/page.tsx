@@ -5,6 +5,9 @@
 
 import { redirect } from 'next/navigation';
 import { getChildSession, clearChildSessionAction } from '@/lib/actions/profile-selection';
+import { prisma } from '@/lib/db/client';
+import { ChildVideoGrid } from '@/components/child/video-grid';
+import { getAllowedAgeRatings } from '@/lib/utils/age-rating';
 
 export default async function ToddlerHomePage() {
   const childSession = await getChildSession();
@@ -16,6 +19,31 @@ export default async function ToddlerHomePage() {
   if (childSession.uiMode !== 'TODDLER') {
     redirect('/child/explorer');
   }
+
+  // Fetch approved videos appropriate for toddlers
+  const childProfile = await prisma.childProfile.findUnique({
+    where: { id: childSession.profileId },
+  });
+
+  // Get age-appropriate videos
+  const allowedRatings = childProfile?.ageRating
+    ? getAllowedAgeRatings(childProfile.ageRating)
+    : ['AGE_2_PLUS', 'AGE_4_PLUS'];
+
+  const videos = await prisma.video.findMany({
+    where: {
+      status: 'READY',
+      approvalStatus: 'APPROVED',
+      ageRating: { in: allowedRatings },
+    },
+    include: {
+      channel: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 12,
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 p-8">
@@ -41,28 +69,10 @@ export default async function ToddlerHomePage() {
           </form>
         </div>
 
-        {/* Content Placeholder */}
-        <div className="rounded-2xl bg-white p-12 text-center shadow-xl">
-          <div className="mb-6 text-7xl">🎬</div>
-          <h2 className="mb-4 text-3xl font-bold text-gray-900">
-            Toddler Mode Coming Soon!
-          </h2>
-          <p className="mb-8 text-xl text-gray-600">
-            Large, colorful buttons for ages 2-4 will appear here
-          </p>
-          <div className="mx-auto max-w-2xl rounded-lg bg-blue-50 p-6">
-            <p className="text-left text-sm text-gray-700">
-              <strong>Current Session:</strong>
-              <br />
-              Profile: {childSession.name}
-              <br />
-              Age: {childSession.age}
-              <br />
-              Theme: {childSession.theme}
-              <br />
-              UI Mode: {childSession.uiMode}
-            </p>
-          </div>
+        {/* Videos */}
+        <div className="rounded-2xl bg-white/80 p-6 shadow-xl">
+          <h2 className="mb-4 text-2xl font-bold text-gray-900">Watch Videos</h2>
+          <ChildVideoGrid videos={videos} />
         </div>
       </div>
     </div>
