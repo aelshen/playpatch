@@ -4,10 +4,13 @@
  */
 
 import { ollamaClient, type OllamaMessage } from './client';
+import { getOpenAIClient } from './openai-client';
 import { filterInput, filterOutput, sanitizeText } from '@safestream/ai-safety';
 import { buildSystemPrompt } from '@safestream/ai-safety';
 import { prisma } from '../db/client';
 import { logger } from '../logger';
+
+const AI_PROVIDER = process.env.AI_PROVIDER || 'ollama';
 
 export interface CreateConversationParams {
   childId: string;
@@ -122,7 +125,7 @@ async function getConversationHistory(conversationId: string): Promise<OllamaMes
  */
 async function saveMessage(
   conversationId: string,
-  role: 'user' | 'assistant',
+  role: 'CHILD' | 'ASSISTANT',
   content: string
 ): Promise<void> {
   try {
@@ -211,15 +214,14 @@ export async function sendAIChatMessage({
         childId,
         videoId,
         historyLength: history.length,
+        provider: AI_PROVIDER,
       },
-      'Sending message to Ollama'
+      'Sending message to AI provider'
     );
 
-    const llmResponse = await ollamaClient.sendMessage(
-      sanitizedMessage,
-      history,
-      systemPrompt
-    );
+    const llmResponse = AI_PROVIDER === 'openai'
+      ? await getOpenAIClient().sendMessage(sanitizedMessage, history, systemPrompt)
+      : await ollamaClient.sendMessage(sanitizedMessage, history, systemPrompt);
 
     // Filter output for safety
     const outputFilter = filterOutput(llmResponse, childAge);
@@ -234,10 +236,10 @@ export async function sendAIChatMessage({
       );
 
       // Save the filtered attempt to track issues
-      await saveMessage(convId, 'user', sanitizedMessage);
+      await saveMessage(convId, 'CHILD', sanitizedMessage);
       await saveMessage(
         convId,
-        'assistant',
+        'ASSISTANT',
         '[Response filtered for safety]'
       );
 
@@ -253,8 +255,8 @@ export async function sendAIChatMessage({
     const finalResponse = outputFilter.filtered || llmResponse;
 
     // Save messages to database
-    await saveMessage(convId, 'user', sanitizedMessage);
-    await saveMessage(convId, 'assistant', finalResponse);
+    await saveMessage(convId, 'CHILD', sanitizedMessage);
+    await saveMessage(convId, 'ASSISTANT', finalResponse);
 
     logger.info(
       {
@@ -367,5 +369,159 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   } catch (error) {
     logger.error({ error, conversationId }, 'Failed to delete conversation');
     throw new Error('Failed to delete conversation');
+  }
+}
+
+/**
+ * Stream AI chat message response
+ */
+export async function* streamAIChatMessage({
+  conversationId,
+  childId,
+  videoId,
+  message,
+  childAge,
+  childName,
+}: SendMessageParams): AsyncGenerator<{ type: string; content?: string; conversationId?: string; error?: string }, void, unknown> {
+  try {
+    // Sanitize input
+    const sanitizedMessage = sanitizeText(message);
+
+    // Filter input for safety
+    const inputFilter = filterInput(sanitizedMessage);
+    if (!inputFilter.passed) {
+      logger.warn(
+        {
+          childId,
+          reason: inputFilter.reason,
+          messagePreview: message.slice(0, 50),
+        },
+        'Child message filtered by safety filter'
+      );
+
+      yield {
+        type: 'error',
+        content: inputFilter.reason || 'This message cannot be processed.',
+      };
+      return;
+    }
+
+    // Get or create conversation
+    const convId =
+      conversationId || (await getOrCreateConversation({ childId, videoId }));
+
+    yield { type: 'conversationId', conversationId: convId };
+
+    // Get video details for context
+    const video = await prisma.video.findUnique({
+      where: { id: videoId },
+      select: {
+        title: true,
+        description: true,
+        topics: true,
+        categories: true,
+      },
+    });
+
+    if (!video) {
+      yield { type: 'error', content: 'Video not found' };
+      return;
+    }
+
+    // Build system prompt
+    const systemPrompt = buildSystemPrompt({
+      childName,
+      childAge,
+      videoTitle: video.title,
+      videoSummary: video.description || undefined,
+      topics: video.topics as string[] || [],
+    });
+
+    // Get conversation history
+    const history = await getConversationHistory(convId);
+
+    logger.info(
+      {
+        conversationId: convId,
+        childId,
+        videoId,
+        historyLength: history.length,
+        provider: AI_PROVIDER,
+      },
+      'Streaming message to AI provider'
+    );
+
+    // Stream from LLM
+    let fullResponse = '';
+    const streamGenerator = AI_PROVIDER === 'openai'
+      ? getOpenAIClient().streamMessage(sanitizedMessage, history, systemPrompt)
+      : ollamaClient.streamMessage(sanitizedMessage, history, systemPrompt);
+
+    for await (const chunk of streamGenerator) {
+      fullResponse += chunk;
+
+      // Send each chunk to the client
+      yield {
+        type: 'chunk',
+        content: chunk,
+      };
+    }
+
+    // Filter complete output for safety
+    const outputFilter = filterOutput(fullResponse, childAge);
+    if (!outputFilter.passed) {
+      logger.error(
+        {
+          conversationId: convId,
+          reason: outputFilter.reason,
+          responsePreview: fullResponse.slice(0, 100),
+        },
+        'LLM response filtered by safety filter'
+      );
+
+      // Save the filtered attempt
+      await saveMessage(convId, 'CHILD', sanitizedMessage);
+      await saveMessage(convId, 'ASSISTANT', '[Response filtered for safety]');
+
+      yield {
+        type: 'error',
+        content:
+          'I apologize, but I cannot provide a safe response to that question. Let\'s talk about something else from the video!',
+      };
+      return;
+    }
+
+    // Use filtered output if links were removed
+    const finalResponse = outputFilter.filtered || fullResponse;
+
+    // Save messages to database
+    await saveMessage(convId, 'CHILD', sanitizedMessage);
+    await saveMessage(convId, 'ASSISTANT', finalResponse);
+
+    logger.info(
+      {
+        conversationId: convId,
+        childId,
+        responseLength: finalResponse.length,
+      },
+      'Streaming AI chat message completed successfully'
+    );
+
+    yield { type: 'done' };
+  } catch (error) {
+    logger.error(
+      {
+        error,
+        childId,
+        videoId,
+        conversationId,
+      },
+      'Failed to stream AI chat message'
+    );
+
+    yield {
+      type: 'error',
+      content: error instanceof Error ? error.message : 'Failed to process message',
+    };
   }
 }

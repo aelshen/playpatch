@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { sendAIChatMessage, isOllamaAvailable } from '@/lib/ai';
+import { sendAIChatMessage, isAIAvailable } from '@/lib/ai';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if AI features are enabled
-    const aiAvailable = await isOllamaAvailable();
+    const aiAvailable = await isAIAvailable();
     if (!aiAvailable) {
       return NextResponse.json(
         {
@@ -60,16 +60,20 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         ageRating: true,
-        familyId: true,
-        family: {
+        user: {
           select: {
-            users: {
-              where: { id: user.id },
-              select: { id: true },
-            },
-            settings: {
+            familyId: true,
+            family: {
               select: {
-                allowAI: true,
+                users: {
+                  where: { id: user.id },
+                  select: { id: true },
+                },
+                settings: {
+                  select: {
+                    allowAI: true,
+                  },
+                },
               },
             },
           },
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (childProfile.family.users.length === 0) {
+    if (childProfile.user.family.users.length === 0) {
       return NextResponse.json(
         { error: 'Unauthorized access to child profile' },
         { status: 403 }
@@ -92,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if child has AI chat enabled
-    if (!childProfile.family.settings?.allowAI) {
+    if (!childProfile.user.family.settings?.allowAI) {
       return NextResponse.json(
         { error: 'AI chat is not enabled for this family' },
         { status: 403 }
@@ -171,7 +175,7 @@ export async function POST(request: NextRequest) {
 // Export GET handler for health check
 export async function GET() {
   try {
-    const available = await isOllamaAvailable();
+    const available = await isAIAvailable();
     return NextResponse.json({
       available,
       status: available ? 'ready' : 'unavailable',

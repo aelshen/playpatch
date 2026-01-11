@@ -123,8 +123,18 @@ export function AiChatPanel({
     };
     setMessages((prev) => [...prev, userMessage]);
 
+    // Add placeholder for assistant message
+    const assistantMessageId = `assistant-${Date.now()}`;
+    const assistantMessage: ChatMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date(),
+    };
+    setMessages((prev) => [...prev, assistantMessage]);
+
     try {
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,37 +148,81 @@ export function AiChatPanel({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send message');
+        throw new Error('Failed to send message');
       }
 
-      const data = await response.json();
-
-      // Update conversation ID if this was the first message
-      if (!conversationId) {
-        setConversationId(data.conversationId);
+      if (!response.body) {
+        throw new Error('Response body is null');
       }
 
-      // Add assistant response
-      const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: data.response,
-        createdAt: new Date(),
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
 
-      // Update user message ID with real one if needed
-      setMessages((prev) => {
-        const withoutTemp = prev.filter((m) => m.id !== userMessage.id);
-        return [...withoutTemp, userMessage, assistantMessage];
-      });
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue;
+
+          const data = line.slice(6);
+          if (data === '[DONE]') {
+            setIsLoading(false);
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+
+            if (parsed.type === 'conversationId' && !conversationId) {
+              setConversationId(parsed.conversationId);
+            } else if (parsed.type === 'chunk' && parsed.content) {
+              fullContent += parsed.content;
+              // Update the assistant message with accumulated content
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: fullContent }
+                    : msg
+                )
+              );
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.content || 'An error occurred');
+            } else if (parsed.type === 'done') {
+              setIsLoading(false);
+            }
+          } catch (e) {
+            // Only log if it's not a JSON parse error from streaming
+            if (!(e instanceof SyntaxError)) {
+              console.error('Failed to parse SSE data:', e);
+            }
+          }
+        }
+      }
+
+      setIsLoading(false);
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send message');
 
-      // Remove optimistic user message on error
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-    } finally {
+      // Show error message in place of empty assistant bubble
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: 'Sorry, I encountered an error. The AI service may be unavailable right now.',
+              }
+            : msg
+        )
+      );
+
+      setError(err instanceof Error ? err.message : 'Failed to send message');
       setIsLoading(false);
     }
   };

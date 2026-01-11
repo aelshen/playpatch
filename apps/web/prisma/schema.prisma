@@ -93,6 +93,7 @@ model ChildProfile {
   playlists       ChildPlaylist[]
   aiConversations AIConversation[]
   journalEntries  JournalEntry[]
+  requests        RequestFromChild[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,6 +168,7 @@ model Video {
   playlistVideos  PlaylistVideo[]
   aiConversations AIConversation[]
   journalEntries  JournalEntry[]
+  requests        RequestFromChild[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -326,6 +328,7 @@ model WatchSession {
   @@index([childId])
   @@index([videoId])
   @@index([startedAt])
+  @@index([startedAt, childId]) // Composite index for heatmap queries
 }
 
 model Favorite {
@@ -340,6 +343,7 @@ model Favorite {
   @@unique([childId, videoId])
   @@index([childId])
   @@index([videoId])
+  @@index([createdAt]) // Index for favorites trend analytics
 }
 
 model ChildPlaylist {
@@ -402,6 +406,8 @@ model AIConversation {
   @@index([videoId])
   @@index([hasFlags])
   @@index([startedAt])
+  @@index([startedAt, endedAt]) // Composite index for time-based analytics
+  @@index([topics]) // Index for topic analytics
 }
 
 model AIMessage {
@@ -423,6 +429,8 @@ model AIMessage {
   createdAt DateTime @default(now())
 
   @@index([conversationId])
+  @@index([createdAt, conversationId]) // Composite index for time-based message queries
+  @@index([wasFiltered]) // Index for safety filtering analytics
 }
 
 enum AIRole {
@@ -454,6 +462,39 @@ model JournalEntry {
 
   @@index([childId])
   @@index([videoId])
+}
+
+model RequestFromChild {
+  id      String       @id @default(cuid())
+  childId String
+  child   ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  videoId String?
+  video   Video?       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  requestType RequestType @default(MORE_LIKE_THIS)
+  message     String?
+  status      RequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+  @@index([videoId])
+  @@index([status])
+  @@index([createdAt, status, requestType]) // Composite index for request analytics
+}
+
+enum RequestType {
+  MORE_LIKE_THIS
+  SPECIFIC_TOPIC
+  NEW_CHANNEL
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  FULFILLED
+  DISMISSED
 }
 
 // ============================================

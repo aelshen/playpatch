@@ -62,9 +62,9 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
 /**
- * Request timeout in milliseconds (30 seconds)
+ * Request timeout in milliseconds (60 seconds for streaming)
  */
-const REQUEST_TIMEOUT = 30000;
+const REQUEST_TIMEOUT = 60000;
 
 /**
  * Ollama API client
@@ -200,6 +200,120 @@ export class OllamaClient {
     });
 
     return this.chat(messages);
+  }
+
+  /**
+   * Stream a chat completion (yields chunks of text)
+   */
+  async *streamChat(
+    messages: OllamaMessage[],
+    options?: OllamaRequest['options']
+  ): AsyncGenerator<string, void, unknown> {
+    const request: OllamaRequest = {
+      model: this.model,
+      messages,
+      stream: true,
+      options: {
+        temperature: 0.7,
+        top_p: 0.9,
+        num_predict: 150,
+        ...options,
+      },
+    };
+
+    logger.info(
+      {
+        model: this.model,
+        messageCount: messages.length,
+      },
+      'Starting streaming chat request to Ollama'
+    );
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error: OllamaError = await response.json();
+        throw new Error(`Ollama API error: ${error.error}`);
+      }
+
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim());
+
+        for (const line of lines) {
+          try {
+            const json = JSON.parse(line);
+            if (json.message?.content) {
+              yield json.message.content;
+            }
+          } catch (e) {
+            // Ignore JSON parse errors for incomplete chunks
+          }
+        }
+      }
+
+      logger.info('Streaming chat completed');
+    } catch (error) {
+      clearTimeout(timeoutId);
+      logger.error({
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      }, 'Streaming chat failed');
+      throw new Error(`Failed to stream from Ollama: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Stream a single message with conversation history
+   */
+  async *streamMessage(
+    userMessage: string,
+    conversationHistory: OllamaMessage[] = [],
+    systemPrompt?: string
+  ): AsyncGenerator<string, void, unknown> {
+    const messages: OllamaMessage[] = [];
+
+    // Add system prompt if provided
+    if (systemPrompt) {
+      messages.push({
+        role: 'system',
+        content: systemPrompt,
+      });
+    }
+
+    // Add conversation history
+    messages.push(...conversationHistory);
+
+    // Add current user message
+    messages.push({
+      role: 'user',
+      content: userMessage,
+    });
+
+    yield* this.streamChat(messages);
   }
 
   /**

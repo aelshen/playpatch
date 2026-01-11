@@ -42,10 +42,22 @@ export function AiChatInput({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Stop all keyboard events from propagating to video player
+    e.stopPropagation();
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  // Also stop propagation for keyup and keypress events
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    e.stopPropagation();
   };
 
   const remainingChars = maxLength - message.length;
@@ -60,6 +72,8 @@ export function AiChatInput({
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, maxLength))}
             onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+            onKeyPress={handleKeyPress}
             disabled={disabled}
             placeholder={placeholder}
             rows={1}

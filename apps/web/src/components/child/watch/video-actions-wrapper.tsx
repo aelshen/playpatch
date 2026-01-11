@@ -6,7 +6,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { VideoActionsBar } from './video-actions-bar';
+import { AddToPlaylistModal } from './add-to-playlist-modal';
+import { RequestMoreModal } from './request-more-modal';
 
 interface VideoActionsWrapperProps {
   videoId: string;
@@ -19,27 +22,40 @@ export function VideoActionsWrapper({
   childProfileId,
   isFavorited,
 }: VideoActionsWrapperProps) {
+  const router = useRouter();
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
 
   const handleLikeClick = async () => {
-    // TODO: Implement in Phase 4
-    // Will call /api/favorites endpoint
-    console.log('Like clicked - to be implemented in Phase 4');
+    try {
+      const method = isFavorited ? 'DELETE' : 'POST';
+      const response = await fetch('/api/favorites', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childProfileId,
+          videoId,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh the page to update favorite status
+        router.refresh();
+      } else {
+        console.error('Failed to toggle favorite');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      throw error; // Let VideoActionsBar handle the error
+    }
   };
 
   const handlePlaylistClick = () => {
-    // TODO: Implement in Phase 4
-    // Will open playlist modal
     setShowPlaylistModal(true);
-    console.log('Playlist clicked - to be implemented in Phase 4');
   };
 
   const handleRequestClick = () => {
-    // TODO: Implement in Phase 4
-    // Will open request modal
     setShowRequestModal(true);
-    console.log('Request clicked - to be implemented in Phase 4');
   };
 
   return (
@@ -52,34 +68,19 @@ export function VideoActionsWrapper({
         onRequestClick={handleRequestClick}
       />
 
-      {/* Modals will be implemented in Phase 4 */}
-      {showPlaylistModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="rounded-lg bg-gray-800 p-6">
-            <p className="text-white">Playlist modal - to be implemented in Phase 4</p>
-            <button
-              onClick={() => setShowPlaylistModal(false)}
-              className="mt-4 rounded-lg bg-gray-700 px-4 py-2 text-white"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <AddToPlaylistModal
+        videoId={videoId}
+        childProfileId={childProfileId}
+        isOpen={showPlaylistModal}
+        onClose={() => setShowPlaylistModal(false)}
+      />
 
-      {showRequestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="rounded-lg bg-gray-800 p-6">
-            <p className="text-white">Request modal - to be implemented in Phase 4</p>
-            <button
-              onClick={() => setShowRequestModal(false)}
-              className="mt-4 rounded-lg bg-gray-700 px-4 py-2 text-white"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <RequestMoreModal
+        videoId={videoId}
+        childProfileId={childProfileId}
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+      />
     </>
   );
 }

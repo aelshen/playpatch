@@ -37,12 +37,16 @@ export async function GET(
       where: { id: childProfileId },
       select: {
         id: true,
-        familyId: true,
-        family: {
+        user: {
           select: {
-            users: {
-              where: { id: user.id },
-              select: { id: true },
+            familyId: true,
+            family: {
+              select: {
+                users: {
+                  where: { id: user.id },
+                  select: { id: true },
+                },
+              },
             },
           },
         },
@@ -56,7 +60,7 @@ export async function GET(
       );
     }
 
-    if (childProfile.family.users.length === 0) {
+    if (childProfile.user.family.users.length === 0) {
       return NextResponse.json(
         { error: 'Unauthorized access to child profile' },
         { status: 403 }

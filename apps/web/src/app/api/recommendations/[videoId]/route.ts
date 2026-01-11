@@ -11,12 +11,13 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { videoId: string } }
 ) {
+  const { videoId } = params;
+  const searchParams = request.nextUrl.searchParams;
+  const childProfileId = searchParams.get('childProfileId');
+  const limitStr = searchParams.get('limit');
+  const limit = limitStr ? parseInt(limitStr, 10) : 10;
+
   try {
-    const { videoId } = params;
-    const searchParams = request.nextUrl.searchParams;
-    const childProfileId = searchParams.get('childProfileId');
-    const limitStr = searchParams.get('limit');
-    const limit = limitStr ? parseInt(limitStr, 10) : 10;
 
     // Validate parameters
     if (!childProfileId) {
@@ -33,10 +34,17 @@ export async function GET(
       );
     }
 
-    // Verify child profile exists and get familyId
+    // Verify child profile exists and get familyId through user
     const childProfile = await prisma.childProfile.findUnique({
       where: { id: childProfileId },
-      select: { id: true, familyId: true },
+      select: {
+        id: true,
+        user: {
+          select: {
+            familyId: true
+          }
+        }
+      },
     });
 
     if (!childProfile) {
@@ -63,7 +71,7 @@ export async function GET(
     const recommendations = await getRecommendedVideos({
       currentVideoId: videoId,
       childProfileId,
-      familyId: childProfile.familyId,
+      familyId: childProfile.user.familyId,
       limit,
     });
 

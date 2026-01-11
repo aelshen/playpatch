@@ -34,12 +34,17 @@ export function SmartSuggestionsSidebar({
   childName,
   fallbackVideos,
   showChatToggle = false,
-  isChatExpanded = false,
-  onChatToggle,
+  isChatExpanded: externalIsChatExpanded,
+  onChatToggle: externalOnChatToggle,
 }: SmartSuggestionsSidebarProps) {
   const [videos, setVideos] = useState<Video[]>(fallbackVideos);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [internalIsChatExpanded, setInternalIsChatExpanded] = useState(false);
+
+  // Use external state if provided, otherwise use internal state
+  const isChatExpanded = externalIsChatExpanded ?? internalIsChatExpanded;
+  const onChatToggle = externalOnChatToggle ?? (() => setInternalIsChatExpanded(!internalIsChatExpanded));
 
   useEffect(() => {
     // Fetch smart recommendations on mount
