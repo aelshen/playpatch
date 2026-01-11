@@ -1,24 +1,26 @@
 import { NextResponse } from 'next/server';
+import { checkAllServices } from '@/lib/health/checks';
 
+/**
+ * Health Check Endpoint
+ * Returns the health status of all services
+ */
 export async function GET() {
-  // TODO: Add health checks for all services
-  // - Database
-  // - Redis
-  // - MinIO
-  // - Meilisearch
-  // - Ollama
+  try {
+    const health = await checkAllServices();
 
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    services: {
-      database: 'unknown',
-      redis: 'unknown',
-      storage: 'unknown',
-      search: 'unknown',
-      ai: 'unknown',
-    },
-  };
+    // Return 503 if unhealthy, 200 if healthy or degraded
+    const statusCode = health.overall === 'unhealthy' ? 503 : 200;
 
-  return NextResponse.json(health);
+    return NextResponse.json(health, { status: statusCode });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        overall: 'unhealthy',
+        error: 'Health check failed',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
+  }
 }

@@ -16,6 +16,12 @@ import {
   type VideoActionState,
 } from '@/lib/actions/videos';
 import { useRouter } from 'next/navigation';
+import {
+  AGE_RATINGS,
+  CATEGORIES,
+  VIDEO_STATUS_COLORS,
+  APPROVAL_STATUS_COLORS,
+} from '@/lib/constants/video';
 
 interface Video {
   id: string;
@@ -42,39 +48,7 @@ interface VideoDetailViewProps {
   video: Video;
 }
 
-const AGE_RATINGS = [
-  { value: 'AGE_2_PLUS', label: 'Ages 2+', description: 'Toddlers and preschoolers' },
-  { value: 'AGE_4_PLUS', label: 'Ages 4+', description: 'Preschool and early elementary' },
-  { value: 'AGE_7_PLUS', label: 'Ages 7+', description: 'Elementary school' },
-  { value: 'AGE_10_PLUS', label: 'Ages 10+', description: 'Pre-teen and older' },
-];
-
-const CATEGORIES = [
-  'EDUCATIONAL',
-  'ENTERTAINMENT',
-  'MUSIC',
-  'ANIMATION',
-  'STORIES',
-  'ARTS_CRAFTS',
-  'NATURE',
-  'SCIENCE',
-  'MATH',
-  'LANGUAGE',
-];
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  DOWNLOADING: 'bg-blue-100 text-blue-800',
-  PROCESSING: 'bg-purple-100 text-purple-800',
-  READY: 'bg-green-100 text-green-800',
-  ERROR: 'bg-red-100 text-red-800',
-};
-
-const APPROVAL_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  APPROVED: 'bg-green-100 text-green-800',
-  REJECTED: 'bg-red-100 text-red-800',
-};
+// Constants now imported from centralized location
 
 function ApproveButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -370,14 +344,14 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
         <div className="mb-6 flex flex-wrap gap-2">
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${
-              STATUS_COLORS[video.status] || 'bg-gray-100 text-gray-800'
+              VIDEO_STATUS_COLORS[video.status] || 'bg-gray-100 text-gray-800'
             }`}
           >
             Status: {video.status}
           </span>
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${
-              APPROVAL_COLORS[video.approvalStatus] || 'bg-gray-100 text-gray-800'
+              APPROVAL_STATUS_COLORS[video.approvalStatus] || 'bg-gray-100 text-gray-800'
             }`}
           >
             Approval: {video.approvalStatus}

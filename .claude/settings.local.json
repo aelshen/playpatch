@@ -28,7 +28,9 @@
       "Bash(lsof:*)",
       "Bash(pkill:*)",
       "Bash(npx prisma db execute:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)"
     ]
   }
 }

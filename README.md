@@ -15,54 +15,42 @@ A self-hosted, parent-controlled video streaming platform designed to provide ch
 
 ### Prerequisites
 
-- **Node.js** 20+ (managed via nvm recommended)
+- **Node.js** 20+
 - **pnpm** 8+
 - **Docker** & **Docker Compose**
 - **Git**
 
-### Installation
+### Automated Setup (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/safestream-kids.git
-   cd safestream-kids
-   ```
+```bash
+# Clone and navigate
+git clone https://github.com/yourusername/safestream-kids.git
+cd safestream-kids
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+# Run complete setup (checks prerequisites, installs deps, sets up services)
+pnpm setup
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+# Start development environment (starts all services + web app + workers)
+pnpm dev:all
+```
 
-4. **Start infrastructure services**
-   ```bash
-   pnpm docker:dev
-   ```
+Open http://localhost:3000 and login with demo account:
+- **Email:** demo@example.com
+- **Password:** password123
 
-5. **Run database migrations**
-   ```bash
-   pnpm db:migrate
-   ```
+### Manual Setup
 
-6. **Seed initial data (optional)**
-   ```bash
-   pnpm db:seed
-   ```
+If you prefer step-by-step control, see the [Complete Setup Guide](./SETUP_GUIDE.md).
 
-7. **Start development server**
-   ```bash
-   pnpm dev
-   ```
+### Verify Installation
 
-8. **Open your browser**
-   ```
-   http://localhost:3000
-   ```
+```bash
+# Check all services are healthy
+pnpm health:check
+
+# View detailed health status
+pnpm health:api
+```
 
 ## 📁 Project Structure
 
@@ -84,15 +72,48 @@ safestream-kids/
 
 ## 🛠️ Development
 
-### Available Scripts
+### Common Commands
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm lint` - Run linter
-- `pnpm test` - Run tests
-- `pnpm db:studio` - Open Prisma Studio
-- `pnpm docker:dev` - Start Docker services
-- `pnpm workers:dev` - Start background workers
+**Daily Development:**
+```bash
+pnpm dev:all         # Start everything (recommended)
+pnpm dev             # Just web app
+pnpm workers:dev     # Just background workers
+```
+
+**Testing:**
+```bash
+pnpm test            # Run all tests
+pnpm test:watch      # Watch mode for TDD
+pnpm test:coverage   # Generate coverage report
+```
+
+**Database:**
+```bash
+pnpm db:studio       # Open Prisma Studio GUI
+pnpm db:migrate      # Run migrations
+pnpm db:seed         # Seed demo data
+pnpm db:reset        # Reset database (caution!)
+```
+
+**Docker Services:**
+```bash
+pnpm docker:dev      # Start all services
+pnpm docker:stop     # Stop services
+pnpm docker:restart  # Restart services
+pnpm docker:status   # Check service status
+pnpm docker:logs     # View all logs
+```
+
+**Health & Maintenance:**
+```bash
+pnpm health:check    # Verify all services
+pnpm health:api      # API health status
+pnpm status          # System status overview
+pnpm clean:all       # Clean everything
+```
+
+See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete command reference.
 
 ### Tech Stack
 
@@ -107,11 +128,21 @@ safestream-kids/
 
 ## 📚 Documentation
 
-- [Product Requirements Document (PRD)](./docs/PRD.md)
+**Getting Started:**
+- [Complete Setup Guide](./SETUP_GUIDE.md) - Step-by-step installation
+- [Testing Guide](./TESTING_GUIDE.md) - How to write and run tests
+- [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+
+**Development:**
+- [Code Review Report](./CODE_REVIEW_REPORT.md) - Code quality analysis
+- [Testing Setup Summary](./TESTING_SETUP_SUMMARY.md) - Quick testing reference
+- [Session Summary](./SESSION_SUMMARY.md) - Recent improvements log
+
+**Project Documentation:**
+- [Product Requirements (PRD)](./docs/PRD.md)
 - [Technical Design](./docs/TECHNICAL_DESIGN.md)
 - [Development Checklist](./docs/DEVELOPMENT_CHECKLIST.md)
-- [API Documentation](./docs/API.md) (coming soon)
-- [Deployment Guide](./docs/DEPLOYMENT.md) (coming soon)
+- [Environment Variables](./ENVIRONMENT_VARIABLES.md)
 
 ## 🔒 Security
 
