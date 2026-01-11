@@ -77,9 +77,9 @@ async function downloadThumbnail(url, videoId) {
         // Upload to storage
         const { uploadBuffer, BUCKETS } = await import('@/lib/storage/client');
         await uploadBuffer(BUCKETS.THUMBNAILS, thumbnailKey, Buffer.from(buffer), { 'Content-Type': 'image/jpeg' });
-        const thumbnailPath = `thumbnails/${thumbnailKey}`;
-        logger.info({ videoId, thumbnailPath }, 'Thumbnail uploaded');
-        return thumbnailPath;
+        // Return just the filename - the API endpoint will add the 'thumbnails/' prefix
+        logger.info({ videoId, thumbnailKey }, 'Thumbnail uploaded');
+        return thumbnailKey;
     }
     catch (error) {
         logger.error({ error, videoId }, 'Failed to download thumbnail');

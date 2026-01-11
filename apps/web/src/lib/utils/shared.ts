@@ -69,3 +69,18 @@ export function formatFileSize(bytes: number): string {
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+/**
+ * Truncate text to a maximum length and append suffix
+ */
+export function truncateText(text: string, maxLength: number, suffix: string = '...'): string {
+  if (!text || text.length === 0) {
+    return text;
+  }
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return text.substring(0, maxLength).trimEnd() + suffix;
+}

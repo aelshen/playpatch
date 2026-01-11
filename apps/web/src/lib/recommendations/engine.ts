@@ -266,14 +266,19 @@ function calculateAgeScore(candidateRating: AgeRating, childRating: AgeRating): 
 
 /**
  * Calculate overlap between two arrays (for testing)
+ * Uses Jaccard similarity: |intersection| / |union|
  */
 export function calculateOverlap(arr1: string[], arr2: string[]): number {
   if (arr1.length === 0 || arr2.length === 0) return 0;
 
   const set1 = new Set(arr1.map((s) => s.toLowerCase()));
-  const matches = arr2.filter((item) => set1.has(item.toLowerCase())).length;
+  const set2 = new Set(arr2.map((s) => s.toLowerCase()));
 
-  const union = new Set([...arr1.map((s) => s.toLowerCase()), ...arr2.map((s) => s.toLowerCase())])
-    .size;
-  return matches / union;
+  // Calculate intersection size
+  const intersection = new Set([...set1].filter((item) => set2.has(item)));
+
+  // Calculate union size
+  const union = new Set([...set1, ...set2]);
+
+  return intersection.size / union.size;
 }

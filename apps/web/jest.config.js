@@ -21,7 +21,7 @@ const customJestConfig = {
     '!src/**/types/**',
     '!src/app/api/**', // API routes tested separately with integration tests
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 70,
       functions: 70,

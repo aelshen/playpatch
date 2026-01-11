@@ -37,7 +37,10 @@
       "Bash(pnpm prisma migrate:*)",
       "Bash(pnpm db:seed:*)",
       "Bash(psql:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(pnpm list:*)",
+      "Bash(npx jest --version)",
+      "Bash(pnpm install:*)"
     ]
   }
 }

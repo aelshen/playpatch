@@ -179,7 +179,7 @@ describe('Recommendation Engine', () => {
 
     it('should sum weights to 100%', () => {
       const totalWeight = 0.4 + 0.3 + 0.2 + 0.1;
-      expect(totalWeight).toBe(1.0);
+      expect(totalWeight).toBeCloseTo(1.0);
     });
   });
 

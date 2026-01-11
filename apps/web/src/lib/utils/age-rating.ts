@@ -16,7 +16,39 @@ export function ageRatingToNumber(rating: AgeRating | string): number {
     AGE_10_PLUS: 10,
   };
 
-  return map[rating] || 2;
+  return map[rating] || 0;
+}
+
+/**
+ * Map numeric value to age rating enum
+ */
+export function numberToAgeRating(age: number): AgeRating {
+  if (age >= 10) return 'AGE_10_PLUS';
+  if (age >= 7) return 'AGE_7_PLUS';
+  if (age >= 4) return 'AGE_4_PLUS';
+  return 'AGE_2_PLUS';
+}
+
+/**
+ * Check if a child of given age can view content with given age rating
+ */
+export function canChildViewVideo(childAge: number, contentRating: AgeRating | string): boolean {
+  const contentMinAge = ageRatingToNumber(contentRating);
+  return childAge >= contentMinAge;
+}
+
+/**
+ * Get human-readable label for age rating
+ */
+export function getAgeRatingLabel(rating: AgeRating | string): string {
+  const labels: Record<string, string> = {
+    AGE_2_PLUS: 'Ages 2+',
+    AGE_4_PLUS: 'Ages 4+',
+    AGE_7_PLUS: 'Ages 7+',
+    AGE_10_PLUS: 'Ages 10+',
+  };
+
+  return labels[rating] || rating;
 }
 
 /**
