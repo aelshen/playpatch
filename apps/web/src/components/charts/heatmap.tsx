@@ -149,7 +149,7 @@ export function Heatmap({
                 height={cellSize}
                 fill={color}
                 rx={2}
-                className="transition-all cursor-pointer hover:opacity-80 hover:scale-105"
+                className="cursor-pointer hover:opacity-80 transition-opacity"
                 onMouseEnter={() =>
                   showTooltip && setHoveredCell({ day, hour, value })
                 }
@@ -164,10 +164,11 @@ export function Heatmap({
       {/* Tooltip */}
       {showTooltip && hoveredCell && (
         <div
-          className="absolute bg-gray-800 text-white text-sm px-3 py-2 rounded-md shadow-lg pointer-events-none z-10"
+          className="absolute bg-gray-800 text-white text-sm px-3 py-2 rounded-md shadow-lg pointer-events-none z-10 whitespace-nowrap"
           style={{
-            top: labelHeight + hoveredCell.day * (cellSize + gap) + cellSize + 5,
-            left: labelWidth + hoveredCell.hour * (cellSize + gap),
+            top: labelHeight + hoveredCell.day * (cellSize + gap) + cellSize + 10,
+            left: labelWidth + hoveredCell.hour * (cellSize + gap) + cellSize / 2,
+            transform: 'translateX(-50%)',
           }}
         >
           <div className="font-semibold">
