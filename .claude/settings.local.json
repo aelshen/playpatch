@@ -30,7 +30,14 @@
       "Bash(npx prisma db execute:*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm build:*)",
+      "Bash(xargs:*)",
+      "Bash(pnpm prisma migrate:*)",
+      "Bash(pnpm db:seed:*)",
+      "Bash(psql:*)",
+      "Bash(node:*)"
     ]
   }
 }

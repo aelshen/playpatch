@@ -2,7 +2,7 @@
  * Child Watch Page
  * SSK-075: Video Player Component
  *
- * Video watching page for children
+ * Video watching page for children - YouTube-style layout
  */
 
 import { redirect, notFound } from 'next/navigation';
@@ -11,6 +11,10 @@ import { prisma } from '@/lib/db/client';
 import { getCurrentChildProfile } from '@/lib/auth/session';
 import { TrackedVideoPlayer } from '@/components/player/tracked-video-player';
 import { ageRatingToNumber, getAllowedAgeRatings } from '@/lib/utils/age-rating';
+import { VideoViewerLayout } from '@/components/child/watch/video-viewer-layout';
+import { VideoInfoSection } from '@/components/child/watch/video-info-section';
+import { VideoActionsWrapper } from '@/components/child/watch/video-actions-wrapper';
+import { SmartSuggestionsSidebar } from '@/components/child/watch/smart-suggestions-sidebar';
 
 interface WatchPageProps {
   params: {
@@ -127,19 +131,38 @@ export default async function WatchPage({ params }: WatchPageProps) {
       ageRating: { in: allowedRatings },
       channelId: video.channelId,
     },
-    take: 6,
+    include: {
+      channel: true,
+    },
+    take: 10,
     orderBy: {
       createdAt: 'desc',
     },
   });
 
+  // Get view count for this video
+  const viewCount = await prisma.watchSession.count({
+    where: {
+      videoId: video.id,
+    },
+  });
+
+  // Check if video is favorited
+  const favorite = await prisma.favorite.findUnique({
+    where: {
+      childId_videoId: {
+        childId: childProfile.id,
+        videoId: video.id,
+      },
+    },
+  });
+
   return (
-    <div className="flex min-h-screen flex-col bg-gray-900">
-      {/* Back button */}
-      <div className="absolute left-4 top-4 z-10">
+    <VideoViewerLayout
+      backButton={
         <Link
           href={`/child/${childProfile.uiMode.toLowerCase()}`}
-          className="flex items-center gap-2 rounded-lg bg-black/50 px-4 py-2 text-white hover:bg-black/70"
+          className="flex items-center gap-2 text-white hover:text-gray-300"
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -149,12 +172,10 @@ export default async function WatchPage({ params }: WatchPageProps) {
               d="M10 19l-7-7m0 0l7-7m-7 7h18"
             />
           </svg>
-          <span>Back</span>
+          <span className="font-medium">Back</span>
         </Link>
-      </div>
-
-      {/* Video player */}
-      <div className="flex-1 flex items-center justify-center">
+      }
+      videoPlayer={
         <TrackedVideoPlayer
           video={{
             id: video.id,
@@ -163,68 +184,40 @@ export default async function WatchPage({ params }: WatchPageProps) {
             thumbnailPath: video.thumbnailPath,
           }}
           resumePosition={resumePosition}
-          className="w-full max-w-7xl"
+          className="h-full w-full"
         />
-      </div>
-
-      {/* Video info */}
-      <div className="border-t border-gray-800 bg-gray-800 p-6">
-        <h1 className="mb-2 text-2xl font-bold text-white">{video.title}</h1>
-        {video.channel && (
-          <p className="mb-2 text-sm text-gray-400">{video.channel.name}</p>
-        )}
-        {video.description && (
-          <p className="text-sm text-gray-300">{video.description}</p>
-        )}
-      </div>
-
-      {/* Related videos */}
-      {relatedVideos.length > 0 && (
-        <div className="border-t border-gray-800 bg-gray-900 p-6">
-          <h2 className="mb-4 text-xl font-bold text-white">Up Next</h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-            {relatedVideos.map((relatedVideo) => (
-              <Link
-                key={relatedVideo.id}
-                href={`/child/watch/${relatedVideo.id}`}
-                className="group"
-              >
-                <div className="relative aspect-video overflow-hidden rounded-lg bg-gray-800">
-                  {relatedVideo.thumbnailPath && (
-                    <img
-                      src={
-                        relatedVideo.thumbnailPath.startsWith('http')
-                          ? relatedVideo.thumbnailPath
-                          : `/api/thumbnails/${relatedVideo.thumbnailPath}`
-                      }
-                      alt={relatedVideo.title}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-110"
-                    />
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                    <svg
-                      className="h-12 w-12 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-                <h3 className="mt-2 text-sm font-medium text-white line-clamp-2">
-                  {relatedVideo.title}
-                </h3>
-                {relatedVideo.duration && (
-                  <p className="text-xs text-gray-400">
-                    {Math.floor(relatedVideo.duration / 60)}:
-                    {(relatedVideo.duration % 60).toString().padStart(2, '0')}
-                  </p>
-                )}
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+      }
+      actionBar={
+        <VideoActionsWrapper
+          videoId={video.id}
+          childProfileId={childProfile.id}
+          isFavorited={!!favorite}
+        />
+      }
+      videoInfo={
+        <VideoInfoSection
+          title={video.title}
+          channel={video.channel}
+          description={video.description}
+          viewCount={viewCount}
+          ageRating={video.ageRating.replace('AGE_', '').replace('_PLUS', '')}
+        />
+      }
+      sidebar={
+        <SmartSuggestionsSidebar
+          videoId={video.id}
+          childProfileId={childProfile.id}
+          childName={childProfile.name}
+          fallbackVideos={relatedVideos.map((v) => ({
+            id: v.id,
+            title: v.title,
+            thumbnailPath: v.thumbnailPath,
+            duration: v.duration,
+            channel: v.channel,
+          }))}
+          showChatToggle={true}
+        />
+      }
+    />
   );
 }

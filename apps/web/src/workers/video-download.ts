@@ -112,10 +112,10 @@ async function downloadThumbnail(
       { 'Content-Type': 'image/jpeg' }
     );
 
-    const thumbnailPath = `thumbnails/${thumbnailKey}`;
-    logger.info({ videoId, thumbnailPath }, 'Thumbnail uploaded');
+    // Return just the filename - the API endpoint will add the 'thumbnails/' prefix
+    logger.info({ videoId, thumbnailKey }, 'Thumbnail uploaded');
 
-    return thumbnailPath;
+    return thumbnailKey;
   } catch (error) {
     logger.error({ error, videoId }, 'Failed to download thumbnail');
     // Non-fatal error, return empty string

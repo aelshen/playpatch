@@ -1,0 +1,1 @@
+{"version":3,"file":"video-transcode.d.ts","sourceRoot":"","sources":["video-transcode.ts"],"names":[],"mappings":"AAAA;;;;;GAKG;AAEH,OAAO,EAAE,MAAM,EAAO,MAAM,QAAQ,CAAC;AAarC,MAAM,WAAW,qBAAqB;IACpC,OAAO,EAAE,MAAM,CAAC;IAChB,SAAS,EAAE,MAAM,CAAC;IAClB,QAAQ,EAAE,MAAM,CAAC;CAClB;AA8QD;;GAEG;AACH,wBAAgB,0BAA0B;;;;WA6BzC"}

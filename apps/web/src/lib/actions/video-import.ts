@@ -41,6 +41,18 @@ export async function importYouTubeVideoAction(
     await getCurrentUser();
     const familyId = await getCurrentFamilyId();
 
+    // Verify family exists
+    const family = await prisma.family.findUnique({
+      where: { id: familyId },
+    });
+
+    if (!family) {
+      logger.error({ familyId }, 'Family not found for video import');
+      return {
+        error: 'Your family account was not found. Please contact support.',
+      };
+    }
+
     // Validate URL
     const validatedFields = importVideoSchema.safeParse({
       url: formData.get('url'),
