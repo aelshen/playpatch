@@ -13,6 +13,7 @@ import { StatsCards } from './stats-cards';
 import { WatchSessionsTable } from './watch-sessions-table';
 import { MostWatchedVideos } from './most-watched-videos';
 import { AIAnalyticsPanel } from './ai-analytics-panel';
+import { InteractionAnalytics } from './interaction-analytics';
 import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-picker';
 
 interface ChildProfile {
@@ -132,6 +133,15 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
       {/* AI Chat Analytics */}
       {!loading && (
         <AIAnalyticsPanel
+          profileId={selectedProfileId}
+          startDate={dateRange.start}
+          endDate={dateRange.end}
+        />
+      )}
+
+      {/* Interaction Analytics */}
+      {!loading && (
+        <InteractionAnalytics
           profileId={selectedProfileId}
           startDate={dateRange.start}
           endDate={dateRange.end}

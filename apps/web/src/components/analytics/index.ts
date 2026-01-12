@@ -12,3 +12,9 @@ export { MostWatchedVideos } from './most-watched-videos';
 export { AIAnalyticsPanel } from './ai-analytics-panel';
 export { AITopicChart } from './ai-topic-chart';
 export { AISafetyStats } from './ai-safety-stats';
+
+// Phase 3: Interaction Analytics Components
+export { KPICardEnhanced } from './kpi-card-enhanced';
+export { InteractionAnalytics } from './interaction-analytics';
+export { FavoritesChart } from './favorites-chart';
+export { RequestBreakdown } from './request-breakdown';
