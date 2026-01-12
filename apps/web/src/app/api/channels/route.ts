@@ -16,7 +16,7 @@ import {
   extractChannelId,
   ChannelVideoListOptions,
 } from '@/lib/media/youtube';
-import { addVideoImportJob } from '@/lib/queue/jobs';
+import { addVideoImportJob } from '@/lib/queue/client';
 import { logger } from '@/lib/logger';
 import { AgeRating, SyncMode, SyncFrequency } from '@prisma/client';
 
