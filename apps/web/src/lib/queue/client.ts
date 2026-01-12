@@ -98,6 +98,27 @@ export async function addThumbnailGenerateJob(data: { videoId: string; localPath
 }
 
 /**
+ * Add video import job (for channel sync)
+ */
+export async function addVideoImportJob(data: {
+  familyId: string;
+  sourceUrl: string;
+  sourceType: string;
+  channelId?: string;
+  metadata?: {
+    title?: string;
+    duration?: number;
+    thumbnailUrl?: string;
+    uploadDate?: string;
+    viewCount?: number;
+  };
+}) {
+  return await videoDownloadQueue.add('import', data, {
+    priority: 2,
+  });
+}
+
+/**
  * Add channel sync job
  */
 export async function addChannelSyncJob(data: { channelId: string }) {
