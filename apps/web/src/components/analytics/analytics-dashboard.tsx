@@ -12,6 +12,8 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { StatsCards } from './stats-cards';
 import { WatchSessionsTable } from './watch-sessions-table';
 import { MostWatchedVideos } from './most-watched-videos';
+import { AIAnalyticsPanel } from './ai-analytics-panel';
+import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-picker';
 
 interface ChildProfile {
   id: string;
@@ -27,7 +29,10 @@ interface AnalyticsDashboardProps {
 
 export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
   const [selectedProfileId, setSelectedProfileId] = useState<string>('all');
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('7d');
+  const [dateRange, setDateRange] = useState<DateRangeValue>({
+    start: subDays(new Date(), 7),
+    end: new Date(),
+  });
   const [stats, setStats] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [mostWatched, setMostWatched] = useState<any[]>([]);
@@ -38,9 +43,15 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
     async function fetchAnalytics() {
       setLoading(true);
       try {
+        // Calculate dateRange string for backward compatibility with existing APIs
+        const daysDiff = Math.ceil(
+          (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const legacyDateRange = daysDiff <= 7 ? '7d' : daysDiff <= 30 ? '30d' : 'all';
+
         const params = new URLSearchParams({
           profileId: selectedProfileId,
-          dateRange,
+          dateRange: legacyDateRange,
         });
 
         const [statsRes, sessionsRes, mostWatchedRes] = await Promise.all([
@@ -71,7 +82,7 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
     }
 
     fetchAnalytics();
-  }, [selectedProfileId, dateRange]);
+  }, [selectedProfileId, dateRange.start, dateRange.end]);
 
   return (
     <div className="space-y-6">
@@ -98,21 +109,12 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
             </select>
           </div>
 
-          {/* Date Range Selector */}
+          {/* Date Range Picker */}
           <div>
-            <label htmlFor="dateRange" className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Time Period
             </label>
-            <select
-              id="dateRange"
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value as '7d' | '30d' | 'all')}
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="all">All Time</option>
-            </select>
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
         </div>
       </div>
@@ -126,6 +128,15 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
 
       {/* Stats Cards */}
       {!loading && stats && <StatsCards stats={stats} />}
+
+      {/* AI Chat Analytics */}
+      {!loading && (
+        <AIAnalyticsPanel
+          profileId={selectedProfileId}
+          startDate={dateRange.start}
+          endDate={dateRange.end}
+        />
+      )}
 
       {/* Most Watched Videos */}
       {!loading && mostWatched.length > 0 && (
