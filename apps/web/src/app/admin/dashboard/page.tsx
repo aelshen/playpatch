@@ -1,10 +1,9 @@
 /**
- * Admin Dashboard - Protected Route
- * Demonstrates auth protection
+ * Admin Dashboard
+ * Main parent dashboard with overview and quick stats
  */
 
 import { getCurrentUser, getCurrentFamilyId } from '@/lib/auth/session';
-import { logoutAction } from '@/lib/auth/actions';
 import { getChildProfilesByUserId } from '@/lib/db/queries/child-profiles';
 import { getVideosByFamily, getPendingApprovalVideos } from '@/lib/db/queries/videos';
 import Link from 'next/link';
@@ -17,29 +16,17 @@ export default async function AdminDashboard() {
   const pendingVideos = await getPendingApprovalVideos(familyId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Welcome back, {user.name}!
-              </p>
-            </div>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">
+          Welcome back, {user.name}! Here's what's happening with your family's SafeStream.
+        </p>
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Stats Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* User Info Card */}
           <div className="rounded-lg bg-white p-6 shadow">
@@ -170,7 +157,7 @@ export default async function AdminDashboard() {
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
