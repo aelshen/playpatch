@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  transpilePackages: ['@playpatch/shared'],
+  transpilePackages: ['@playpatch/shared', '@playpatch/ai-safety'],
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
