@@ -101,6 +101,7 @@ export async function addThumbnailGenerateJob(data: { videoId: string; localPath
  * Add video import job (for channel sync)
  */
 export async function addVideoImportJob(data: {
+  videoId: string;
   familyId: string;
   sourceUrl: string;
   sourceType: string;

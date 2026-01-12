@@ -120,6 +120,7 @@ export async function syncChannel(channelId: string): Promise<{
         // If auto-approved, queue for download
         if (approvalStatus === 'APPROVED') {
           await addVideoImportJob({
+            videoId: newVideo.id,
             familyId: channel.familyId,
             sourceUrl: video.url,
             sourceType: 'YOUTUBE',

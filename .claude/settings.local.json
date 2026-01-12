@@ -42,7 +42,8 @@
       "Bash(npx jest --version)",
       "Bash(pnpm install:*)",
       "Bash(ollama list:*)",
-      "Bash(ollama pull:*)"
+      "Bash(ollama pull:*)",
+      "Bash(pnpm prisma db execute:*)"
     ]
   }
 }

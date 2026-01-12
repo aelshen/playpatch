@@ -187,6 +187,7 @@ export async function POST(request: NextRequest) {
         // If auto-approved, queue for download
         if (approvalStatus === 'APPROVED') {
           await addVideoImportJob({
+            videoId: newVideo.id,
             familyId: user.familyId,
             sourceUrl: video.url,
             sourceType: 'YOUTUBE',
