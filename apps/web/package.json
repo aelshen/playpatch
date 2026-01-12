@@ -1,5 +1,5 @@
 {
-  "name": "@safestream/web",
+  "name": "@playpatch/web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -21,8 +21,8 @@
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^5.9.1",
-    "@safestream/ai-safety": "workspace:*",
-    "@safestream/shared": "workspace:*",
+    "@playpatch/ai-safety": "workspace:*",
+    "@playpatch/shared": "workspace:*",
     "@tanstack/react-query": "^5.20.5",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.3.0",

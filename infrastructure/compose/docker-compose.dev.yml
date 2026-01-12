@@ -8,7 +8,7 @@ services:
     ports:
       - "5433:5432"  # Use 5433 on host to avoid conflict with local PostgreSQL
     environment:
-      POSTGRES_PASSWORD: safestream_dev
+      POSTGRES_PASSWORD: playpatch_dev
 
   redis:
     ports:
@@ -41,10 +41,10 @@ services:
   #     context: ../..
   #     dockerfile: infrastructure/docker/Dockerfile.web
   #     target: development
-  #   container_name: safestream-web
+  #   container_name: playpatch-web
   #   environment:
   #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://safestream:safestream_dev@postgres:5432/safestream
+  #     - DATABASE_URL=postgresql://playpatch:playpatch_dev@postgres:5432/playpatch
   #     - REDIS_URL=redis://redis:6379
   #     - MINIO_ENDPOINT=minio
   #     - MINIO_PORT=9000
@@ -67,5 +67,5 @@ services:
   #     redis:
   #       condition: service_healthy
   #   networks:
-  #     - safestream
+  #     - playpatch
   #   command: pnpm dev

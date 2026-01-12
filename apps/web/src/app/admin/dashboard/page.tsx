@@ -21,7 +21,7 @@ export default async function AdminDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-2 text-gray-600">
-          Welcome back, {user.name}! Here's what's happening with your family's SafeStream.
+          Welcome back, {user.name}! Here's what's happening with your family's PlayPatch.
         </p>
       </div>
 

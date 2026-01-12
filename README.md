@@ -1,4 +1,4 @@
-# SafeStream Kids
+# PlayPatch
 
 A self-hosted, parent-controlled video streaming platform designed to provide children with a safe, curated video experience.
 
@@ -24,8 +24,8 @@ A self-hosted, parent-controlled video streaming platform designed to provide ch
 
 ```bash
 # Clone and navigate
-git clone https://github.com/yourusername/safestream-kids.git
-cd safestream-kids
+git clone https://github.com/yourusername/playpatch.git
+cd playpatch
 
 # Run complete setup (checks prerequisites, installs deps, sets up services)
 pnpm setup
@@ -55,7 +55,7 @@ pnpm health:api
 ## 📁 Project Structure
 
 ```
-safestream-kids/
+playpatch/
 ├── apps/
 │   └── web/                 # Next.js application
 ├── packages/
@@ -146,7 +146,7 @@ See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete command reference.
 
 ## 🔒 Security
 
-SafeStream Kids takes security and child safety seriously:
+PlayPatch takes security and child safety seriously:
 
 - All content is pre-approved by parents
 - AI interactions are logged and monitored
@@ -173,4 +173,4 @@ For support, please open an issue on GitHub or contact [your-email@example.com].
 
 ---
 
-**⚠️ Important**: SafeStream Kids is designed for self-hosting. Please ensure you comply with all relevant copyright laws when importing content from external sources.
+**⚠️ Important**: PlayPatch is designed for self-hosting. Please ensure you comply with all relevant copyright laws when importing content from external sources.

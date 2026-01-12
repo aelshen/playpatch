@@ -1,4 +1,4 @@
-// SafeStream Kids - Database Schema
+// PlayPatch - Database Schema
 // Based on TECHNICAL_DESIGN.md Section 4.2
 
 generator client {

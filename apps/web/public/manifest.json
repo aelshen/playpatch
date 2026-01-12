@@ -1,6 +1,6 @@
 {
-  "name": "SafeStream Kids",
-  "short_name": "SafeStream",
+  "name": "PlayPatch",
+  "short_name": "PlayPatch",
   "description": "Safe, parent-controlled video streaming for children",
   "start_url": "/",
   "display": "standalone",

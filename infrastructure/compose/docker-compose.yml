@@ -8,28 +8,28 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: safestream-postgres
+    container_name: playpatch-postgres
     environment:
-      POSTGRES_USER: safestream
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-safestream_dev}
-      POSTGRES_DB: safestream
+      POSTGRES_USER: playpatch
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-playpatch_dev}
+      POSTGRES_DB: playpatch
       POSTGRES_INITDB_ARGS: "-E UTF8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U safestream"]
+      test: ["CMD-SHELL", "pg_isready -U playpatch"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
 
   # Redis Cache & Queue
   redis:
     image: redis:7-alpine
-    container_name: safestream-redis
+    container_name: playpatch-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
@@ -39,13 +39,13 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
 
   # MinIO Object Storage (S3-compatible)
   minio:
     image: minio/minio:latest
-    container_name: safestream-minio
+    container_name: playpatch-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minio_admin}
@@ -53,13 +53,13 @@ services:
     volumes:
       - minio_data:/data
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
 
   # MinIO Client - Create buckets on startup
   minio-setup:
     image: minio/mc:latest
-    container_name: safestream-minio-setup
+    container_name: playpatch-minio-setup
     depends_on:
       - minio
     entrypoint: >
@@ -76,12 +76,12 @@ services:
       exit 0;
       "
     networks:
-      - safestream
+      - playpatch
 
   # Meilisearch
   meilisearch:
     image: getmeili/meilisearch:v1.6
-    container_name: safestream-meilisearch
+    container_name: playpatch-meilisearch
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_KEY:-master_key_change_me}
       MEILI_ENV: ${MEILI_ENV:-development}
@@ -89,17 +89,17 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
 
   # Ollama for local LLM
   ollama:
     image: ollama/ollama:latest
-    container_name: safestream-ollama
+    container_name: playpatch-ollama
     volumes:
       - ollama_data:/root/.ollama
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
     # Uncomment for GPU support (NVIDIA)
     # deploy:
@@ -112,21 +112,21 @@ services:
 
 volumes:
   postgres_data:
-    name: safestream_postgres_data
+    name: playpatch_postgres_data
   redis_data:
-    name: safestream_redis_data
+    name: playpatch_redis_data
   minio_data:
-    name: safestream_minio_data
+    name: playpatch_minio_data
   meilisearch_data:
-    name: safestream_meilisearch_data
+    name: playpatch_meilisearch_data
   ollama_data:
-    name: safestream_ollama_data
+    name: playpatch_ollama_data
   web_node_modules:
-    name: safestream_web_node_modules
+    name: playpatch_web_node_modules
   video_processing:
-    name: safestream_video_processing
+    name: playpatch_video_processing
 
 networks:
-  safestream:
-    name: safestream_network
+  playpatch:
+    name: playpatch_network
     driver: bridge

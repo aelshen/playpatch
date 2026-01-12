@@ -1,9 +1,9 @@
 {
-  "name": "safestream-kids",
+  "name": "playpatch",
   "version": "1.0.0",
   "private": true,
   "description": "Self-hosted, parent-controlled video streaming platform for children",
-  "author": "SafeStream Kids Team",
+  "author": "PlayPatch Team",
   "license": "MIT",
   "engines": {
     "node": ">=20.0.0",
@@ -48,8 +48,8 @@
     "docker:status": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml ps",
     "docker:clean": "cd infrastructure/compose && docker compose --env-file ../../.env -f docker-compose.yml down -v",
     "workers:dev": "cd apps/web && pnpm workers",
-    "ollama:pull": "docker exec -it safestream-ollama ollama pull llama3.1:8b",
-    "ollama:models": "docker exec safestream-ollama ollama list",
+    "ollama:pull": "docker exec -it playpatch-ollama ollama pull llama3.1:8b",
+    "ollama:models": "docker exec playpatch-ollama ollama list",
     "search:init": "cd apps/web && pnpm tsx scripts/init-search.ts"
   },
   "devDependencies": {

@@ -56,7 +56,7 @@ export function AdminSidebar() {
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div>
-              <h2 className="text-xl font-bold">SafeStream</h2>
+              <h2 className="text-xl font-bold">PlayPatch</h2>
               <p className="text-xs text-gray-400">Parent Dashboard</p>
             </div>
           )}

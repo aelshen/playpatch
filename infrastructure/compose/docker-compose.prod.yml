@@ -7,7 +7,7 @@ services:
   # Traefik Reverse Proxy
   traefik:
     image: traefik:v3.0
-    container_name: safestream-traefik
+    container_name: playpatch-traefik
     command:
       - "--api.insecure=false"
       - "--providers.docker=true"
@@ -28,7 +28,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
 
   # Web Application
@@ -37,10 +37,10 @@ services:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.web
       target: production
-    container_name: safestream-web
+    container_name: playpatch-web
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://safestream:${DB_PASSWORD}@postgres:5432/safestream
+      - DATABASE_URL=postgresql://playpatch:${DB_PASSWORD}@postgres:5432/playpatch
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -63,7 +63,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -77,10 +77,10 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.workers
-    container_name: safestream-workers
+    container_name: playpatch-workers
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://safestream:${DB_PASSWORD}@postgres:5432/safestream
+      - DATABASE_URL=postgresql://playpatch:${DB_PASSWORD}@postgres:5432/playpatch
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -96,7 +96,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - safestream
+      - playpatch
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -123,4 +123,4 @@ services:
 
 volumes:
   traefik_letsencrypt:
-    name: safestream_traefik_letsencrypt
+    name: playpatch_traefik_letsencrypt

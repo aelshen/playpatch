@@ -5,8 +5,8 @@
 
 import { ollamaClient, type OllamaMessage } from './client';
 import { getOpenAIClient } from './openai-client';
-import { filterInput, filterOutput, sanitizeText } from '@safestream/ai-safety';
-import { buildSystemPrompt } from '@safestream/ai-safety';
+import { filterInput, filterOutput, sanitizeText } from '@playpatch/ai-safety';
+import { buildSystemPrompt } from '@playpatch/ai-safety';
 import { prisma } from '../db/client';
 import { logger } from '../logger';
 

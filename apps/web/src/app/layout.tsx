@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SafeStream Kids',
+  title: 'PlayPatch',
   description: 'Safe, parent-controlled video streaming for children',
   manifest: '/manifest.json',
 };
