@@ -4,7 +4,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import Link from 'next/link';
 import { Plus, Youtube, Calendar, CheckCircle, Clock, Filter } from 'lucide-react';

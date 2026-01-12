@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth/session';
 import { getYouTubeChannelInfo, getChannelVideoList, isYouTubeChannelUrl } from '@/lib/media/youtube';
 import { logger } from '@/lib/logger';
 

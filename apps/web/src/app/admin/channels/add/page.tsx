@@ -4,7 +4,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth/session';
 import { AddChannelForm } from '@/components/channels/add-channel-form';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';

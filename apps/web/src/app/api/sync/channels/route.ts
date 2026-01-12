@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth/session';
 import { syncChannel, syncDueChannels } from '@/lib/sync/channel-sync';
 import { logger } from '@/lib/logger';
 
