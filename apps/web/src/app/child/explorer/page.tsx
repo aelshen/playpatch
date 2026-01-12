@@ -1,13 +1,19 @@
 /**
  * Explorer Mode Home Screen (Ages 5-12)
- * SSK-073: Explorer Mode Home Screen (placeholder)
+ * Enhanced with search, favorites, continue watching, and categories
  */
 
 import { redirect } from 'next/navigation';
 import { getChildSession, clearChildSessionAction } from '@/lib/actions/profile-selection';
 import { prisma } from '@/lib/db/client';
 import { ChildVideoGrid } from '@/components/child/video-grid';
+import { ChildSearchBar } from '@/components/child/search-bar';
+import { FavoritesSection } from '@/components/child/favorites-section';
+import { ContinueWatching } from '@/components/child/continue-watching';
+import { CategorySection } from '@/components/child/category-section';
 import { getAllowedAgeRatings } from '@/lib/utils/age-rating';
+import { Sparkles } from 'lucide-react';
+import { Suspense } from 'react';
 
 export default async function ExplorerHomePage() {
   const childSession = await getChildSession();
@@ -20,17 +26,16 @@ export default async function ExplorerHomePage() {
     redirect('/child/toddler');
   }
 
-  // Fetch approved videos appropriate for child's age
+  // Fetch child profile for age rating
   const childProfile = await prisma.childProfile.findUnique({
     where: { id: childSession.profileId },
   });
 
-  // Get age-appropriate videos
-  const allowedRatings = childProfile?.ageRating
-    ? getAllowedAgeRatings(childProfile.ageRating)
-    : ['AGE_2_PLUS', 'AGE_4_PLUS', 'AGE_7_PLUS', 'AGE_10_PLUS'];
+  const ageRating = childProfile?.ageRating || 'AGE_10_PLUS';
+  const allowedRatings = getAllowedAgeRatings(ageRating);
 
-  const videos = await prisma.video.findMany({
+  // Fetch new/recommended videos
+  const newVideos = await prisma.video.findMany({
     where: {
       status: 'READY',
       approvalStatus: 'APPROVED',
@@ -42,45 +47,109 @@ export default async function ExplorerHomePage() {
     orderBy: {
       createdAt: 'desc',
     },
-    take: 20,
+    take: 12,
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm shadow">
         <div className="mx-auto max-w-7xl px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 shadow-lg">
                 <span className="text-xl">🧒</span>
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Welcome back, {childSession.name}!
+                  Hi {childSession.name}!
                 </h1>
-                <p className="text-sm text-gray-600">Ready to explore?</p>
+                <p className="text-sm text-gray-600">What do you want to watch?</p>
               </div>
             </div>
             <form action={clearChildSessionAction}>
               <button
                 type="submit"
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
               >
                 Exit
               </button>
             </form>
           </div>
+
+          {/* Search Bar */}
+          <div className="max-w-2xl">
+            <ChildSearchBar mode="explorer" />
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Recommended Videos</h2>
-          <p className="text-gray-600">Watch your favorite videos!</p>
+      <main className="mx-auto max-w-7xl px-4 py-8 space-y-12">
+        {/* Continue Watching */}
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <ContinueWatching childId={childSession.profileId} mode="explorer" />
+        </Suspense>
+
+        {/* Favorites */}
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <FavoritesSection childId={childSession.profileId} mode="explorer" />
+        </Suspense>
+
+        {/* New & Recommended */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+            <h2 className="text-2xl font-bold text-gray-900">New & Recommended</h2>
+          </div>
+          <ChildVideoGrid videos={newVideos} />
         </div>
-        <ChildVideoGrid videos={videos} />
+
+        {/* Categories */}
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <CategorySection
+            category="Science"
+            ageRating={ageRating}
+            mode="explorer"
+            icon="🔬"
+          />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <CategorySection
+            category="Animals"
+            ageRating={ageRating}
+            mode="explorer"
+            icon="🦁"
+          />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <CategorySection
+            category="Music"
+            ageRating={ageRating}
+            mode="explorer"
+            icon="🎵"
+          />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <CategorySection
+            category="Art"
+            ageRating={ageRating}
+            mode="explorer"
+            icon="🎨"
+          />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 animate-pulse bg-white/50 rounded-xl" />}>
+          <CategorySection
+            category="Stories"
+            ageRating={ageRating}
+            mode="explorer"
+            icon="📚"
+          />
+        </Suspense>
       </main>
     </div>
   );
