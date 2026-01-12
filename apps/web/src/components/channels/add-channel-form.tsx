@@ -407,7 +407,7 @@ export function AddChannelForm() {
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">Channel Added Successfully!</h3>
           <p className="text-gray-600 mb-6">
-            {preview.channel.name} has been added and {initialVideoLimit} videos have been queued for import.
+            {preview.channel.name} has been added and videos have been imported to your library.
           </p>
           <div className="flex gap-3 justify-center">
             <button

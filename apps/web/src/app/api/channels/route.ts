@@ -121,30 +121,95 @@ export async function POST(request: NextRequest) {
 
     const videos = await getChannelVideoList(url, videoListOptions);
 
-    logger.info({ channelId: channel.id, videoCount: videos.length }, 'Queueing videos for import');
+    logger.info({ channelId: channel.id, videoCount: videos.length }, 'Importing videos from channel');
 
-    // Queue videos for import
-    const jobPromises = videos.map(video =>
-      addVideoImportJob({
-        familyId: user.familyId,
-        sourceUrl: video.url,
-        sourceType: 'YOUTUBE',
-        channelId: channel.id,
-        metadata: {
-          title: video.title,
-          duration: video.duration,
-          thumbnailUrl: video.thumbnailUrl,
-          uploadDate: video.uploadDate,
-          viewCount: video.viewCount,
-        },
-      })
-    );
+    // Import each video - create database records
+    let importedCount = 0;
+    for (const video of videos) {
+      try {
+        // Check if video already exists
+        const existingVideo = await prisma.video.findFirst({
+          where: {
+            familyId: user.familyId,
+            sourceType: 'YOUTUBE',
+            sourceId: video.id,
+          },
+        });
 
-    await Promise.all(jobPromises);
+        if (existingVideo) {
+          logger.debug({ videoId: video.id }, 'Video already exists, skipping');
+          continue;
+        }
+
+        // Get full video info for metadata
+        const { getYouTubeVideoInfo, suggestAgeRating, mapCategories } = await import('@/lib/media/youtube');
+        const fullVideoInfo = await getYouTubeVideoInfo(video.url);
+
+        // Use channel's autoAgeRating or suggest one
+        const ageRating = autoAgeRating || suggestAgeRating(fullVideoInfo);
+
+        // Use channel's autoCategories or map from video
+        const categories =
+          autoCategories.length > 0
+            ? autoCategories
+            : mapCategories(fullVideoInfo.categories, fullVideoInfo.tags);
+
+        // Determine approval status based on sync mode
+        const approvalStatus = syncMode === 'AUTO_APPROVE' ? 'APPROVED' : 'PENDING';
+
+        // Create video record
+        const newVideo = await prisma.video.create({
+          data: {
+            familyId: user.familyId,
+            channelId: channel.id,
+            sourceType: 'YOUTUBE',
+            sourceId: fullVideoInfo.id,
+            sourceUrl: video.url,
+            title: fullVideoInfo.title,
+            description: fullVideoInfo.description,
+            duration: fullVideoInfo.duration,
+            thumbnailPath: fullVideoInfo.thumbnailUrl,
+            ageRating,
+            categories,
+            topics: fullVideoInfo.tags.slice(0, 10),
+            status: 'READY',
+            approvalStatus,
+          },
+        });
+
+        importedCount++;
+
+        logger.info(
+          { videoId: newVideo.id, title: newVideo.title, approvalStatus },
+          'Created video from channel import'
+        );
+
+        // If auto-approved, queue for download
+        if (approvalStatus === 'APPROVED') {
+          await addVideoImportJob({
+            familyId: user.familyId,
+            sourceUrl: video.url,
+            sourceType: 'YOUTUBE',
+            channelId: channel.id,
+            metadata: {
+              title: fullVideoInfo.title,
+              duration: fullVideoInfo.duration,
+              thumbnailUrl: fullVideoInfo.thumbnailUrl,
+            },
+          });
+        }
+      } catch (videoError) {
+        logger.error(
+          { error: videoError, videoId: video.id, videoTitle: video.title },
+          'Failed to import video from channel'
+        );
+        // Continue with next video
+      }
+    }
 
     logger.info(
-      { channelId: channel.id, queuedCount: videos.length },
-      'Videos queued for import'
+      { channelId: channel.id, importedCount, totalVideos: videos.length },
+      'Channel import completed'
     );
 
     return NextResponse.json({
@@ -153,9 +218,10 @@ export async function POST(request: NextRequest) {
         name: channel.name,
         description: channel.description,
         thumbnailUrl: channel.thumbnailUrl,
-        videoCount: videos.length,
+        videoCount: importedCount,
       },
-      queuedVideos: videos.length,
+      importedVideos: importedCount,
+      totalVideos: videos.length,
     });
   } catch (error) {
     logger.error({ error }, 'Failed to create channel');
