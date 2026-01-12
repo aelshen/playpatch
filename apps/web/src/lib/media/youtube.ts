@@ -26,6 +26,26 @@ export interface YouTubeVideoInfo {
   tags: string[];
 }
 
+export interface YouTubeChannelInfo {
+  id: string;
+  name: string;
+  description: string;
+  thumbnailUrl: string;
+  subscriberCount?: number;
+  videoCount?: number;
+  url: string;
+}
+
+export interface ChannelVideoListItem {
+  id: string;
+  title: string;
+  duration: number;
+  thumbnailUrl: string;
+  uploadDate: string;
+  viewCount: number;
+  url: string;
+}
+
 /**
  * Extract video ID from YouTube URL
  */
@@ -214,4 +234,183 @@ export function mapCategories(youtubeCategories: string[], tags: string[]): stri
   }
 
   return Array.from(matchedCategories);
+}
+
+/**
+ * Extract channel ID/username from YouTube URL
+ */
+export function extractChannelId(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+
+    // youtube.com/@username
+    if (urlObj.pathname.startsWith('/@')) {
+      return urlObj.pathname;
+    }
+
+    // youtube.com/channel/CHANNEL_ID
+    if (urlObj.pathname.startsWith('/channel/')) {
+      return urlObj.pathname.split('/')[2];
+    }
+
+    // youtube.com/c/CustomName
+    if (urlObj.pathname.startsWith('/c/')) {
+      return urlObj.pathname;
+    }
+
+    // youtube.com/user/Username
+    if (urlObj.pathname.startsWith('/user/')) {
+      return urlObj.pathname;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Validate if URL is a YouTube channel URL
+ */
+export function isYouTubeChannelUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return (
+      urlObj.hostname.includes('youtube.com') &&
+      (urlObj.pathname.startsWith('/@') ||
+        urlObj.pathname.startsWith('/channel/') ||
+        urlObj.pathname.startsWith('/c/') ||
+        urlObj.pathname.startsWith('/user/'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get YouTube channel information
+ */
+export async function getYouTubeChannelInfo(url: string): Promise<YouTubeChannelInfo> {
+  logger.info({ url }, 'Extracting YouTube channel metadata');
+
+  try {
+    // Use yt-dlp to extract channel metadata
+    const { stdout } = await execAsync(
+      `yt-dlp --dump-json --playlist-items 0 "${url}"`,
+      { maxBuffer: 10 * 1024 * 1024 }
+    );
+
+    const data = JSON.parse(stdout);
+
+    const channelInfo: YouTubeChannelInfo = {
+      id: data.channel_id || data.uploader_id || '',
+      name: data.channel || data.uploader || 'Unknown Channel',
+      description: data.description || '',
+      thumbnailUrl: data.thumbnail || data.thumbnails?.[0]?.url || '',
+      subscriberCount: data.channel_follower_count || data.subscriber_count,
+      videoCount: data.playlist_count,
+      url: url,
+    };
+
+    logger.info({ channelId: channelInfo.id, name: channelInfo.name }, 'Successfully extracted channel metadata');
+
+    return channelInfo;
+  } catch (error) {
+    logger.error({ error, url }, 'Failed to extract YouTube channel metadata');
+
+    if (error instanceof Error && error.message.includes('command not found')) {
+      throw new Error('yt-dlp is not installed. Please install it first: pip install yt-dlp');
+    }
+
+    throw new Error('Failed to extract channel information. Please check the URL and try again.');
+  }
+}
+
+export interface ChannelVideoListOptions {
+  limit?: number; // Max number of videos to fetch
+  minDuration?: number; // Minimum duration in seconds
+  maxDuration?: number; // Maximum duration in seconds
+  daysBack?: number; // Only videos from last N days
+  minViews?: number; // Minimum view count
+}
+
+/**
+ * Get list of videos from a YouTube channel
+ */
+export async function getChannelVideoList(
+  channelUrl: string,
+  options: ChannelVideoListOptions = {}
+): Promise<ChannelVideoListItem[]> {
+  const {
+    limit = 10,
+    minDuration,
+    maxDuration,
+    daysBack,
+    minViews,
+  } = options;
+
+  logger.info({ channelUrl, options }, 'Fetching channel video list');
+
+  try {
+    // Build yt-dlp command
+    let cmd = `yt-dlp --flat-playlist --dump-json`;
+
+    // Limit number of videos
+    if (limit) {
+      cmd += ` --playlist-end ${limit}`;
+    }
+
+    cmd += ` "${channelUrl}"`;
+
+    const { stdout } = await execAsync(cmd, {
+      maxBuffer: 50 * 1024 * 1024, // 50MB for larger playlists
+    });
+
+    // Parse JSON lines (one video per line)
+    const lines = stdout.trim().split('\n').filter(line => line.trim());
+    const videos: ChannelVideoListItem[] = [];
+
+    for (const line of lines) {
+      try {
+        const data = JSON.parse(line);
+
+        // Apply filters
+        if (minDuration && data.duration < minDuration) continue;
+        if (maxDuration && data.duration > maxDuration) continue;
+        if (minViews && (data.view_count || 0) < minViews) continue;
+
+        // Check upload date if daysBack specified
+        if (daysBack && data.upload_date) {
+          const uploadDate = new Date(
+            data.upload_date.slice(0, 4) + '-' +
+            data.upload_date.slice(4, 6) + '-' +
+            data.upload_date.slice(6, 8)
+          );
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+          if (uploadDate < cutoffDate) continue;
+        }
+
+        videos.push({
+          id: data.id,
+          title: data.title || 'Untitled Video',
+          duration: data.duration || 0,
+          thumbnailUrl: data.thumbnail || data.thumbnails?.[0]?.url || '',
+          uploadDate: data.upload_date || '',
+          viewCount: data.view_count || 0,
+          url: `https://www.youtube.com/watch?v=${data.id}`,
+        });
+      } catch (parseError) {
+        logger.warn({ line, parseError }, 'Failed to parse video entry');
+      }
+    }
+
+    logger.info({ channelUrl, count: videos.length }, 'Successfully fetched channel video list');
+
+    return videos;
+  } catch (error) {
+    logger.error({ error, channelUrl }, 'Failed to fetch channel video list');
+    throw new Error('Failed to fetch channel videos. Please check the URL and try again.');
+  }
 }

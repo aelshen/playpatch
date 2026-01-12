@@ -16,7 +16,8 @@ import {
   LogOut,
   Home,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Youtube
 } from 'lucide-react';
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
@@ -30,6 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Profiles', href: '/admin/profiles', icon: Users },
+  { label: 'Channels', href: '/admin/channels', icon: Youtube },
   { label: 'Content Library', href: '/admin/content', icon: Video },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Queue Monitor', href: '/admin/queue', icon: Clock },
