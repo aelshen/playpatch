@@ -6,7 +6,7 @@
 import { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
-import { getChildSession } from '@/lib/child-session';
+import { getChildSession } from '@/lib/actions/profile-selection';
 import { AdminSidebar } from '@/components/layout/admin-sidebar';
 
 interface AdminLayoutProps {
