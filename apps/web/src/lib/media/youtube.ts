@@ -294,21 +294,30 @@ export async function getYouTubeChannelInfo(url: string): Promise<YouTubeChannel
   logger.info({ url }, 'Extracting YouTube channel metadata');
 
   try {
-    // Use yt-dlp to extract channel metadata
+    // Use yt-dlp to extract channel metadata from the first video
+    // --flat-playlist gets video list without downloading
+    // --playlist-end 1 limits to first video to get channel info quickly
     const { stdout } = await execAsync(
-      `yt-dlp --dump-json --playlist-items 0 "${url}"`,
+      `yt-dlp --flat-playlist --dump-json --playlist-end 1 "${url}"`,
       { maxBuffer: 10 * 1024 * 1024 }
     );
 
-    const data = JSON.parse(stdout);
+    // Parse the first line (first video entry)
+    const firstLine = stdout.trim().split('\n')[0];
+    if (!firstLine) {
+      throw new Error('No channel data returned');
+    }
 
+    const data = JSON.parse(firstLine);
+
+    // Extract channel info from the playlist metadata
     const channelInfo: YouTubeChannelInfo = {
-      id: data.channel_id || data.uploader_id || '',
-      name: data.channel || data.uploader || 'Unknown Channel',
-      description: data.description || '',
-      thumbnailUrl: data.thumbnail || data.thumbnails?.[0]?.url || '',
-      subscriberCount: data.channel_follower_count || data.subscriber_count,
-      videoCount: data.playlist_count,
+      id: data.playlist_channel_id || data.playlist_id || data.channel_id || '',
+      name: data.playlist_uploader || data.playlist || data.channel || 'Unknown Channel',
+      description: data.description || '', // Note: description not available in flat mode
+      thumbnailUrl: data.thumbnails?.[0]?.url || '',
+      subscriberCount: undefined, // Not available in flat-playlist mode
+      videoCount: undefined, // Would need full channel fetch
       url: url,
     };
 
@@ -320,6 +329,10 @@ export async function getYouTubeChannelInfo(url: string): Promise<YouTubeChannel
 
     if (error instanceof Error && error.message.includes('command not found')) {
       throw new Error('yt-dlp is not installed. Please install it first: pip install yt-dlp');
+    }
+
+    if (error instanceof Error) {
+      throw new Error(`Failed to extract channel information: ${error.message}`);
     }
 
     throw new Error('Failed to extract channel information. Please check the URL and try again.');
