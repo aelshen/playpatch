@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Youtube, Calendar, CheckCircle, Clock, Filter, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Youtube, Calendar, CheckCircle, Clock, Filter, Trash2, RefreshCw, AlertCircle, Edit } from 'lucide-react';
 
 interface ChannelCardProps {
   channel: {
@@ -210,6 +210,14 @@ export function ChannelCard({ channel }: ChannelCardProps) {
           className="text-sm font-medium text-blue-600 hover:text-blue-700"
         >
           View Videos
+        </Link>
+        <span className="text-gray-300">•</span>
+        <Link
+          href={`/admin/channels/${channel.id}/edit`}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+        >
+          <Edit className="w-4 h-4" />
+          Edit
         </Link>
         <span className="text-gray-300">•</span>
         <button
