@@ -1,14 +1,20 @@
 /**
  * Video Import Page
- * SSK-037: YouTube Video Import
+ * SSK-037: YouTube Video Import + RealDebrid Integration
  */
 
 import { getCurrentUser } from '@/lib/auth/session';
-import { ImportForm } from '@/components/admin/import-form';
 import Link from 'next/link';
+import { ImportTabs } from '@/components/admin/import-tabs';
 
-export default async function ImportVideoPage() {
+export default async function ImportVideoPage({
+  searchParams,
+}: {
+  searchParams: { source?: string };
+}) {
   await getCurrentUser();
+
+  const source = searchParams.source || 'youtube';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -16,9 +22,9 @@ export default async function ImportVideoPage() {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Import Video</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Import Content</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Add videos from YouTube to your library
+                Add videos from YouTube or RealDebrid torrents
               </p>
             </div>
             <Link
@@ -32,19 +38,7 @@ export default async function ImportVideoPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-lg bg-white p-8 shadow">
-          <div className="mb-6 text-center">
-            <div className="mb-4 text-6xl">📥</div>
-            <h2 className="mb-2 text-2xl font-bold text-gray-900">
-              Import from YouTube
-            </h2>
-            <p className="text-gray-600">
-              Add educational and entertaining content to your SafeStream library
-            </p>
-          </div>
-
-          <ImportForm />
-        </div>
+        <ImportTabs defaultSource={source} />
       </main>
     </div>
   );
