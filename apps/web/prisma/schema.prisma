@@ -184,6 +184,7 @@ enum SourceType {
   YOUTUBE
   VIMEO
   UPLOAD
+  REALDEBRID
   OTHER
 }
 
