@@ -341,7 +341,13 @@ DATABASE_URL=postgresql://playpatch:playpatch_dev@localhost:5433/playpatch
 # Redis (for BullMQ job queue)
 REDIS_URL=redis://localhost:6379
 
-# MinIO/S3 Storage
+# Storage - can use local filesystem or network location
+STORAGE_TYPE=local
+LOCAL_STORAGE_PATH=./storage
+# Or use network location:
+# LOCAL_STORAGE_PATH=/Volumes/DS920/Media/PlayPatch
+
+# MinIO/S3 Storage (alternative to local)
 STORAGE_TYPE=minio
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
@@ -398,7 +404,7 @@ A: No, Docker is required for PostgreSQL, Redis, MinIO, and Meilisearch.
 A: The web app stops, but workers keep running. Use `pnpm dev:stop` to stop everything.
 
 **Q: Where are videos stored?**
-A: In MinIO (accessible at http://localhost:9001) or local `./storage/` directory.
+A: Based on `LOCAL_STORAGE_PATH` in `.env` (default: `./storage/`). Can be configured to use a network location like `/Volumes/NAS/Media/PlayPatch` for centralized storage.
 
 **Q: How do I debug worker issues?**
 A: Run workers in foreground: `cd packages/workers && pnpm dev`
