@@ -17,6 +17,7 @@ interface Video {
   duration: number;
   thumbnailPath: string | null;
   sourceUrl: string;
+  sourceType: string;
   status: string;
   approvalStatus: string;
   ageRating: string;
@@ -103,6 +104,17 @@ function VideoCard({ video }: { video: Video }) {
 
           {/* Status Badges */}
           <div className="mb-3 flex flex-wrap gap-2">
+            {/* Source Type Badge */}
+            {video.sourceType === 'REALDEBRID' && (
+              <span className="rounded-full bg-purple-100 text-purple-800 px-2 py-1 text-xs font-medium">
+                🧲 RealDebrid
+              </span>
+            )}
+            {video.sourceType === 'YOUTUBE' && (
+              <span className="rounded-full bg-red-100 text-red-800 px-2 py-1 text-xs font-medium">
+                ▶️ YouTube
+              </span>
+            )}
             <span
               className={`rounded-full px-2 py-1 text-xs font-medium ${
                 statusColors[video.status] || 'bg-gray-100 text-gray-800'
