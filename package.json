@@ -27,6 +27,7 @@
     "status": "bash infrastructure/scripts/status.sh",
     "postinstall": "cd apps/web && pnpm prisma generate",
     "dev:all": "bash infrastructure/scripts/dev-start.sh",
+    "dev:stop": "bash infrastructure/scripts/dev-stop.sh",
     "health:check": "bash infrastructure/scripts/health-check.sh",
     "health:api": "curl -s http://localhost:3000/api/health | jq",
     "db:generate": "cd apps/web && pnpm prisma generate",

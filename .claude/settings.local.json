@@ -44,7 +44,29 @@
       "Bash(ollama list:*)",
       "Bash(ollama pull:*)",
       "Bash(pnpm prisma db execute:*)",
-      "Bash(pnpm workers:*)"
+      "Bash(pnpm workers:*)",
+      "Bash(pnpm db:migrate:*)",
+      "Bash(pnpm dev:all:*)",
+      "Bash(done)",
+      "Bash(pnpm --filter @playpatch/workers dev:*)",
+      "Bash(pnpm exec tsx:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(bash:*)",
+      "Bash(pnpm dev:stop:*)",
+      "Bash(git checkout:*)",
+      "WebSearch",
+      "WebFetch(domain:api.real-debrid.com)",
+      "WebFetch(domain:valentingot.github.io)",
+      "Bash(pnpm health:check:*)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm docker:status:*)",
+      "Bash(kill:*)",
+      "Bash(jq:*)",
+      "Bash(pnpm docker:restart:*)",
+      "Bash(open:*)",
+      "Bash(nc:*)"
     ]
   }
 }

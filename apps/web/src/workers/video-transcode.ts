@@ -252,12 +252,17 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
 
     await job.updateProgress(95);
 
-    // Update video record
+    // Update video record with HLS path and thumbnail path
+    const thumbnailPath = thumbs.length > 0
+      ? `${familyId}/${videoId}/thumbnails/thumb_0.jpg`
+      : undefined;
+
     await prisma.video.update({
       where: { id: videoId },
       data: {
         status: 'READY',
         hlsPath: `${hlsBaseKey}/master.m3u8`,
+        thumbnailPath: thumbnailPath,
         isTranscoded: true,
       },
     });
