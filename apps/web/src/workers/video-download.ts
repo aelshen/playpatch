@@ -31,7 +31,7 @@ const DOWNLOAD_DIR = process.env.TEMP_DOWNLOAD_DIR || '/tmp/safestream/downloads
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 /**
- * Download video using yt-dlp
+ * Download video using yt-dlp with fallback strategies
  */
 async function downloadVideo(
   url: string,
@@ -40,46 +40,42 @@ async function downloadVideo(
 ): Promise<{ filePath: string; fileSize: number; format: string }> {
   logger.info({ url, outputPath }, 'Starting video download');
 
-  // Create download directory if it doesn't exist
-  const dir = outputPath.substring(0, outputPath.lastIndexOf('/'));
-  if (!existsSync(dir)) {
-    await mkdir(dir, { recursive: true });
-  }
-
-  // Download with yt-dlp
-  // Format selection: best video+audio or best single file, max 1080p
-  const command = [
-    'yt-dlp',
-    '--format "bestvideo[height<=1080]+bestaudio/best[height<=1080]"',
-    '--merge-output-format mp4',
-    '--no-playlist',
-    `--output "${outputPath}"`,
-    '--progress',
-    '--newline',
-    `"${url}"`,
-  ].join(' ');
-
   try {
-    const { stdout } = await execAsync(command, {
-      maxBuffer: 50 * 1024 * 1024, // 50MB buffer for progress output
+    // Import enhanced download with fallback strategies
+    const { downloadVideoWithFallback, DownloadError } = await import('./video-download-enhanced');
+
+    // Check for cookies file (users can optionally provide YouTube cookies)
+    const cookiesPath = process.env.YOUTUBE_COOKIES_PATH || undefined;
+
+    const result = await downloadVideoWithFallback({
+      url,
+      outputPath,
+      cookiesPath,
+      onProgress,
     });
 
-    logger.info({ url, stdout }, 'Download completed');
-
-    // Get file info
-    const { stdout: statOutput } = await execAsync(`stat -f%z "${outputPath}"`);
-    const fileSize = parseInt(statOutput.trim());
-
-    if (fileSize > MAX_FILE_SIZE) {
-      throw new Error(`File size ${fileSize} bytes exceeds maximum allowed size of ${MAX_FILE_SIZE} bytes`);
+    if (result.fileSize > MAX_FILE_SIZE) {
+      throw new Error(`File size ${result.fileSize} bytes exceeds maximum allowed size of ${MAX_FILE_SIZE} bytes`);
     }
 
-    return {
-      filePath: outputPath,
-      fileSize,
-      format: 'mp4',
-    };
-  } catch (error) {
+    logger.info({ url, fileSize: result.fileSize }, 'Download completed successfully');
+
+    return result;
+  } catch (error: any) {
+    // If it's a DownloadError with user-friendly message, use that
+    if (error.name === 'DownloadError') {
+      const errorMsg = [
+        error.userFriendlyMessage,
+        '',
+        'Suggestions:',
+        ...error.suggestions.map((s: string) => `- ${s}`)
+      ].join('\n');
+
+      logger.error({ error, url, userMessage: errorMsg }, 'Download failed with user-friendly error');
+      throw new Error(errorMsg);
+    }
+
+    // Otherwise use generic error
     logger.error({ error, url }, 'Download failed');
     throw error;
   }
