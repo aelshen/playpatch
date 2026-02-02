@@ -9,7 +9,7 @@ import { Worker } from 'bullmq';
 export interface VideoDownloadJobData {
     videoId: string;
     sourceUrl: string;
-    sourceType: 'YOUTUBE' | 'VIMEO' | 'OTHER';
+    sourceType: 'YOUTUBE' | 'VIMEO' | 'REALDEBRID' | 'OTHER';
     familyId: string;
 }
 /**

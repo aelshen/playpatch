@@ -18,11 +18,19 @@ interface Video {
   } | null;
 }
 
+interface PastConversation {
+  id: string;
+  startedAt: Date;
+  lastMessage: string;
+}
+
 interface SmartSuggestionsSidebarProps {
   videoId: string;
   childProfileId: string;
   childName?: string;
   fallbackVideos: Video[];
+  pastConversations?: PastConversation[];
+  uiMode?: string;
   showChatToggle?: boolean;
   isChatExpanded?: boolean;
   onChatToggle?: () => void;
@@ -33,6 +41,8 @@ export function SmartSuggestionsSidebar({
   childProfileId,
   childName,
   fallbackVideos,
+  pastConversations = [],
+  uiMode = 'EXPLORER',
   showChatToggle = false,
   isChatExpanded: externalIsChatExpanded,
   onChatToggle: externalOnChatToggle,
@@ -85,6 +95,8 @@ export function SmartSuggestionsSidebar({
 
       <SuggestedVideosSidebar
         videos={videos}
+        pastConversations={pastConversations}
+        uiMode={uiMode}
         showChatToggle={showChatToggle}
         isChatExpanded={isChatExpanded}
         onChatToggle={onChatToggle}

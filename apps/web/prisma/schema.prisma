@@ -388,8 +388,9 @@ model AIConversation {
   videoId String
   video   Video        @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  isFavorite Boolean   @default(false)
 
   // Extracted topics discussed
   topics String[]
@@ -407,6 +408,9 @@ model AIConversation {
   @@index([videoId])
   @@index([hasFlags])
   @@index([startedAt])
+  @@index([childId, startedAt])
+  @@index([videoId, childId])
+  @@index([childId, isFavorite])
   @@index([startedAt, endedAt]) // Composite index for time-based analytics
   @@index([topics]) // Index for topic analytics
 }

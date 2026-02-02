@@ -29,7 +29,7 @@ interface WatchSession {
 interface ChildProfile {
   id: string;
   name: string;
-  avatarPath: string | null;
+  avatarUrl: string | null;
 }
 
 interface WatchSessionsTableProps {

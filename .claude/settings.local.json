@@ -66,7 +66,20 @@
       "Bash(jq:*)",
       "Bash(pnpm docker:restart:*)",
       "Bash(open:*)",
-      "Bash(nc:*)"
+      "Bash(nc:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(npx:*)",
+      "Bash(npm search:*)",
+      "Bash(pnpm workers:start:*)",
+      "Bash(pnpm run:*)",
+      "Bash(/Users/ahmad.elshenawy/work/source/temp/playpatch/node_modules/.bin/playwright:*)",
+      "Bash(tee:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker rm:*)"
     ]
   }
 }

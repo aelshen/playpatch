@@ -140,6 +140,30 @@ export default async function WatchPage({ params }: WatchPageProps) {
     },
   });
 
+  // Get past conversations for this video
+  const pastConversations = await prisma.aIConversation.findMany({
+    where: {
+      childId: childProfile.id,
+      videoId: video.id,
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1,
+        select: {
+          content: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: {
+      startedAt: 'desc',
+    },
+    take: 3,
+  });
+
   // Get view count for this video
   const viewCount = await prisma.watchSession.count({
     where: {
@@ -215,6 +239,12 @@ export default async function WatchPage({ params }: WatchPageProps) {
             duration: v.duration,
             channel: v.channel,
           }))}
+          pastConversations={pastConversations.map((conv) => ({
+            id: conv.id,
+            startedAt: conv.startedAt,
+            lastMessage: conv.messages[0]?.content || 'Tap to view chat',
+          }))}
+          uiMode={childProfile.uiMode}
           showChatToggle={true}
         />
       }

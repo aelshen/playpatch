@@ -19,7 +19,7 @@ import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-pick
 interface ChildProfile {
   id: string;
   name: string;
-  avatarPath: string | null;
+  avatarUrl: string | null;
   ageRating: string;
 }
 

@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         const fullVideoInfo = await getYouTubeVideoInfo(video.url);
 
         // Use channel's autoAgeRating or suggest one
-        const ageRating = autoAgeRating || suggestAgeRating(fullVideoInfo);
+        const ageRating = autoAgeRating || (suggestAgeRating(fullVideoInfo) as any);
 
         // Use channel's autoCategories or map from video
         const categories =
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
