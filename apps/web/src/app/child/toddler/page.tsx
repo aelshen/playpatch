@@ -11,7 +11,9 @@ import { ChildSearchBar } from '@/components/child/search-bar';
 import { FavoritesSection } from '@/components/child/favorites-section';
 import { ContinueWatching } from '@/components/child/continue-watching';
 import { CategorySection } from '@/components/child/category-section';
+import { TimeRemainingBadge } from '@/components/child/time-remaining-badge';
 import { getAllowedAgeRatings } from '@/lib/utils/age-rating';
+import { getTimeRemainingToday, TimeLimits } from '@/lib/utils/time-limits';
 import { Sparkles } from 'lucide-react';
 import { Suspense } from 'react';
 
@@ -26,13 +28,19 @@ export default async function ToddlerHomePage() {
     redirect('/child/explorer');
   }
 
-  // Fetch child profile for age rating
+  // Fetch child profile for age rating and time limits
   const childProfile = await prisma.childProfile.findUnique({
     where: { id: childSession.profileId },
   });
 
   const ageRating = childProfile?.ageRating || 'AGE_4_PLUS';
   const allowedRatings = getAllowedAgeRatings(ageRating);
+
+  // Calculate time remaining for today
+  const timeRemaining = await getTimeRemainingToday(
+    childSession.profileId,
+    childProfile?.timeLimits as TimeLimits | null
+  );
 
   // Fetch new videos for toddlers
   const newVideos = await prisma.video.findMany({
@@ -65,14 +73,21 @@ export default async function ToddlerHomePage() {
                 <p className="text-xl text-gray-600">Let's watch!</p>
               </div>
             </div>
-            <form action={clearChildSessionAction}>
-              <button
-                type="submit"
-                className="rounded-2xl bg-white px-8 py-4 text-xl font-bold text-gray-700 shadow-xl hover:bg-gray-50 border-4 border-gray-200"
-              >
-                Exit
-              </button>
-            </form>
+            <div className="flex items-center gap-4">
+              <TimeRemainingBadge
+                profileId={childSession.profileId}
+                initialMinutesRemaining={timeRemaining}
+                className="text-base"
+              />
+              <form action={clearChildSessionAction}>
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-white px-8 py-4 text-xl font-bold text-gray-700 shadow-xl hover:bg-gray-50 border-4 border-gray-200"
+                >
+                  Exit
+                </button>
+              </form>
+            </div>
           </div>
 
           {/* Search Bar - Bigger for toddlers */}
