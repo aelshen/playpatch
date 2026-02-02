@@ -1,118 +1,227 @@
 #!/bin/bash
-# Health check script for SafeStream Kids
-# Checks all services and reports status
+
+###############################################################################
+# PlayPatch Development Environment Health Check
+# Verifies all required services are running and accessible
+###############################################################################
 
 set -e
 
-# Colors
-RED='\033[0;31m'
+# Colors for output
 GREEN='\033[0;32m'
+RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m'
+NC='\033[0m' # No Color
 
-print_status() {
-    if [ "$2" = "OK" ]; then
-        echo -e "${GREEN}✓${NC} $1: ${GREEN}$2${NC}"
-    elif [ "$2" = "WARN" ]; then
-        echo -e "${YELLOW}⚠${NC} $1: ${YELLOW}$3${NC}"
-    else
-        echo -e "${RED}✗${NC} $1: ${RED}$2${NC}"
+# Track overall health
+ALL_HEALTHY=true
+
+# Header
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║      PlayPatch Development Environment Health Check       ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+###############################################################################
+# Helper Functions
+###############################################################################
+
+check_service() {
+  local service_name=$1
+  local check_command=$2
+  local fix_command=$3
+
+  echo -n "Checking ${service_name}... "
+
+  if eval "$check_command" &>/dev/null; then
+    echo -e "${GREEN}✓ Running${NC}"
+    return 0
+  else
+    echo -e "${RED}✗ Not running${NC}"
+    if [ -n "$fix_command" ]; then
+      echo -e "  ${YELLOW}Fix:${NC} $fix_command"
     fi
+    ALL_HEALTHY=false
+    return 1
+  fi
 }
 
-echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  SafeStream Kids - Health Check${NC}"
-echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+check_port() {
+  local service_name=$1
+  local host=$2
+  local port=$3
+  local fix_command=$4
+
+  echo -n "Checking ${service_name} (${host}:${port})... "
+
+  if nc -z "$host" "$port" 2>/dev/null; then
+    echo -e "${GREEN}✓ Accessible${NC}"
+    return 0
+  else
+    echo -e "${RED}✗ Not accessible${NC}"
+    if [ -n "$fix_command" ]; then
+      echo -e "  ${YELLOW}Fix:${NC} $fix_command"
+    fi
+    ALL_HEALTHY=false
+    return 1
+  fi
+}
+
+check_http_endpoint() {
+  local service_name=$1
+  local url=$2
+  local expected_status=${3:-200}
+  local fix_command=$4
+
+  echo -n "Checking ${service_name} (${url})... "
+
+  status_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+
+  if [ "$status_code" = "$expected_status" ] || [ "$status_code" = "401" ] || [ "$status_code" = "403" ]; then
+    echo -e "${GREEN}✓ Accessible (HTTP ${status_code})${NC}"
+    return 0
+  else
+    echo -e "${RED}✗ Not accessible (HTTP ${status_code})${NC}"
+    if [ -n "$fix_command" ]; then
+      echo -e "  ${YELLOW}Fix:${NC} $fix_command"
+    fi
+    ALL_HEALTHY=false
+    return 1
+  fi
+}
+
+###############################################################################
+# Check Prerequisites
+###############################################################################
+
+echo -e "${BLUE}[1] Prerequisites${NC}"
+
+# Check Docker
+check_service "Docker daemon" "docker info" "Start Docker Desktop or run: sudo systemctl start docker"
+
+# Check Node.js
+check_service "Node.js" "node --version" "Install Node.js: https://nodejs.org/"
+
+# Check pnpm
+check_service "pnpm" "pnpm --version" "Install pnpm: npm install -g pnpm"
+
 echo ""
 
-# Check Docker is running
-if ! docker ps >/dev/null 2>&1; then
-    print_status "Docker" "NOT RUNNING"
-    echo ""
-    echo "Please start Docker Desktop and try again."
-    exit 1
-fi
+###############################################################################
+# Check Docker Services
+###############################################################################
 
-print_status "Docker" "OK"
+echo -e "${BLUE}[2] Docker Services${NC}"
 
 # Check PostgreSQL
-if docker ps --filter "name=safestream-postgres" --filter "status=running" | grep -q safestream-postgres; then
-    if docker ps --filter "name=safestream-postgres" --filter "health=healthy" | grep -q safestream-postgres; then
-        print_status "PostgreSQL" "OK"
-    else
-        print_status "PostgreSQL" "WARN" "Running but not healthy yet"
-    fi
-else
-    print_status "PostgreSQL" "NOT RUNNING"
-fi
+check_port "PostgreSQL" "localhost" "5433" "pnpm docker:dev (ensure PostgreSQL container is running)"
 
 # Check Redis
-if docker ps --filter "name=safestream-redis" --filter "status=running" | grep -q safestream-redis; then
-    # Test Redis connection
-    if docker exec safestream-redis redis-cli ping 2>/dev/null | grep -q PONG; then
-        print_status "Redis" "OK"
-    else
-        print_status "Redis" "WARN" "Running but not responding"
-    fi
-else
-    print_status "Redis" "NOT RUNNING"
-fi
+check_port "Redis" "localhost" "6379" "pnpm docker:dev (ensure Redis container is running)"
 
 # Check MinIO
-if docker ps --filter "name=safestream-minio" --filter "status=running" | grep -q safestream-minio; then
-    print_status "MinIO" "OK"
-else
-    print_status "MinIO" "NOT RUNNING"
-fi
+check_port "MinIO API" "localhost" "9000" "pnpm docker:dev (ensure MinIO container is running)"
+
+# Check MinIO Console
+check_port "MinIO Console" "localhost" "9001" "pnpm docker:dev (ensure MinIO container is running)"
 
 # Check Meilisearch
-if docker ps --filter "name=safestream-meilisearch" --filter "status=running" | grep -q safestream-meilisearch; then
-    print_status "Meilisearch" "OK"
+check_http_endpoint "Meilisearch" "http://localhost:7700/health" "200" "pnpm docker:dev (ensure Meilisearch container is running)"
+
+echo ""
+
+###############################################################################
+# Check Database Connection
+###############################################################################
+
+echo -e "${BLUE}[3] Database Connection${NC}"
+
+# Check if .env file exists
+if [ ! -f "apps/web/.env" ]; then
+  echo -e "${RED}✗ .env file not found${NC}"
+  echo -e "  ${YELLOW}Fix:${NC} cp .env.example apps/web/.env && edit with your values"
+  ALL_HEALTHY=false
 else
-    print_status "Meilisearch" "NOT RUNNING"
+  echo -e "${GREEN}✓ .env file exists${NC}"
 fi
 
-# Check Ollama (optional)
-if docker ps --filter "name=safestream-ollama" --filter "status=running" | grep -q safestream-ollama; then
-    print_status "Ollama (AI)" "OK"
+# Try to connect to PostgreSQL using Prisma
+echo -n "Checking Prisma database connection... "
+if cd apps/web && pnpm prisma db execute --stdin <<< "SELECT 1;" &>/dev/null; then
+  echo -e "${GREEN}✓ Connected${NC}"
+  cd ../..
 else
-    print_status "Ollama (AI)" "WARN" "Not running (optional service)"
+  echo -e "${RED}✗ Cannot connect${NC}"
+  echo -e "  ${YELLOW}Fix:${NC} Check DATABASE_URL in apps/web/.env"
+  ALL_HEALTHY=false
+  cd ../..
 fi
 
 echo ""
 
-# Check web app
-if curl -s http://localhost:3000 >/dev/null 2>&1; then
-    print_status "Web App" "OK" "http://localhost:3000"
-else
-    print_status "Web App" "NOT RUNNING" "Start with: pnpm dev"
-fi
+###############################################################################
+# Check Optional Services
+###############################################################################
 
-# Check API health endpoint
-if curl -s http://localhost:3000/api/health >/dev/null 2>&1; then
-    HEALTH=$(curl -s http://localhost:3000/api/health 2>/dev/null)
-    STATUS=$(echo $HEALTH | grep -o '"overall":"[^"]*"' | cut -d'"' -f4)
+echo -e "${BLUE}[4] Optional Services${NC}"
 
-    if [ "$STATUS" = "healthy" ]; then
-        print_status "API Health" "OK" "All services healthy"
-    elif [ "$STATUS" = "degraded" ]; then
-        print_status "API Health" "WARN" "Some services degraded"
-    else
-        print_status "API Health" "WARN" "Check http://localhost:3000/api/health"
-    fi
+# Check Ollama (optional for AI features)
+if check_port "Ollama" "localhost" "11434" "" 2>/dev/null; then
+  :
 else
-    print_status "API Health" "N/A" "Web app not running"
+  echo -e "  ${YELLOW}Note:${NC} Ollama not running (optional). Install: https://ollama.ai/"
 fi
 
 echo ""
-echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 
-# Exit with error if critical services are down
-if ! docker ps --filter "name=safestream-postgres" --filter "status=running" | grep -q safestream-postgres; then
-    echo -e "${RED}Critical services are not running!${NC}"
-    echo "Start them with: pnpm docker:dev"
-    exit 1
+###############################################################################
+# Check File Permissions
+###############################################################################
+
+echo -e "${BLUE}[5] File Permissions${NC}"
+
+# Check storage directory
+if [ -d "storage" ]; then
+  if [ -w "storage" ]; then
+    echo -e "${GREEN}✓ Storage directory writable${NC}"
+  else
+    echo -e "${RED}✗ Storage directory not writable${NC}"
+    echo -e "  ${YELLOW}Fix:${NC} chmod 755 storage"
+    ALL_HEALTHY=false
+  fi
+else
+  echo -e "${YELLOW}⚠ Storage directory does not exist${NC}"
+  echo -e "  ${YELLOW}Note:${NC} Will be created automatically when needed"
 fi
 
-echo -e "${GREEN}Health check complete!${NC}"
+echo ""
+
+###############################################################################
+# Summary
+###############################################################################
+
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+if [ "$ALL_HEALTHY" = true ]; then
+  echo -e "${BLUE}║${NC}                  ${GREEN}✓ All Systems Ready!${NC}                     ${BLUE}║${NC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "${GREEN}You can now start development:${NC}"
+  echo -e "  ${BLUE}pnpm dev:all${NC}  - Start all services"
+  echo -e "  ${BLUE}pnpm dev${NC}      - Start Next.js only"
+  echo ""
+  exit 0
+else
+  echo -e "${BLUE}║${NC}               ${RED}✗ Issues Found - See Above${NC}               ${BLUE}║${NC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "${RED}Please fix the issues above before starting development.${NC}"
+  echo ""
+  echo -e "${YELLOW}Quick fixes:${NC}"
+  echo -e "  1. Start Docker: ${BLUE}open -a Docker${NC} (macOS) or ${BLUE}sudo systemctl start docker${NC} (Linux)"
+  echo -e "  2. Start services: ${BLUE}pnpm docker:dev${NC}"
+  echo -e "  3. Check .env: ${BLUE}cp .env.example apps/web/.env${NC}"
+  echo -e "  4. Run migrations: ${BLUE}cd apps/web && pnpm prisma migrate dev${NC}"
+  echo ""
+  exit 1
+fi

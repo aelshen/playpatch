@@ -167,11 +167,14 @@ pnpm docker:clean    # Remove all volumes (⚠️ deletes data!)
 
 **Monitoring & Debugging:**
 ```bash
-pnpm health:check    # Verify all services are healthy
+pnpm health:check    # Comprehensive health check (run before starting)
 pnpm health:api      # API health status (requires app running)
-tail -f .workers.log # View worker logs in real-time
+pnpm docker:status   # Check Docker container status
 pnpm docker:logs     # View Docker service logs
+tail -f .workers.log # View worker logs in real-time
 ```
+
+💡 **Tip**: Run `pnpm health:check` before starting development to catch issues early!
 
 **Testing:**
 ```bash

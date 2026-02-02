@@ -79,7 +79,9 @@
       "Bash(/Users/ahmad.elshenawy/work/source/temp/playpatch/node_modules/.bin/playwright:*)",
       "Bash(tee:*)",
       "Bash(docker restart:*)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "Bash(./scripts/health-check.sh:*)",
+      "Bash(./infrastructure/scripts/health-check.sh:*)"
     ]
   }
 }
