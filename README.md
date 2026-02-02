@@ -191,6 +191,7 @@ Run `pnpm run` to see all available commands.
 - **Storage**: MinIO (S3-compatible)
 - **Search**: Meilisearch
 - **AI**: Ollama (local) or OpenAI
+- **Monitoring**: Sentry (optional, for error tracking)
 - **Infrastructure**: Docker, Traefik
 
 ## 📚 Documentation
