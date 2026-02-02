@@ -81,7 +81,8 @@
       "Bash(docker restart:*)",
       "Bash(docker rm:*)",
       "Bash(./scripts/health-check.sh:*)",
-      "Bash(./infrastructure/scripts/health-check.sh:*)"
+      "Bash(./infrastructure/scripts/health-check.sh:*)",
+      "Bash(./health-check.sh:*)"
     ]
   }
 }

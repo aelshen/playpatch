@@ -137,8 +137,12 @@ echo ""
 
 echo -e "${BLUE}[3] Database Connection${NC}"
 
+# Calculate project root relative to script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # Check if .env file exists
-if [ ! -f "apps/web/.env" ]; then
+if [ ! -f "$PROJECT_ROOT/apps/web/.env" ]; then
   echo -e "${RED}✗ .env file not found${NC}"
   echo -e "  ${YELLOW}Fix:${NC} cp .env.example apps/web/.env && edit with your values"
   ALL_HEALTHY=false
@@ -148,14 +152,12 @@ fi
 
 # Try to connect to PostgreSQL using Prisma
 echo -n "Checking Prisma database connection... "
-if cd apps/web && pnpm prisma db execute --stdin <<< "SELECT 1;" &>/dev/null; then
+if (cd "$PROJECT_ROOT/apps/web" && pnpm prisma db execute --stdin <<< "SELECT 1;") &>/dev/null; then
   echo -e "${GREEN}✓ Connected${NC}"
-  cd ../..
 else
   echo -e "${RED}✗ Cannot connect${NC}"
   echo -e "  ${YELLOW}Fix:${NC} Check DATABASE_URL in apps/web/.env"
   ALL_HEALTHY=false
-  cd ../..
 fi
 
 echo ""
@@ -181,9 +183,9 @@ echo ""
 
 echo -e "${BLUE}[5] File Permissions${NC}"
 
-# Check storage directory
-if [ -d "storage" ]; then
-  if [ -w "storage" ]; then
+# Check storage directory (using PROJECT_ROOT calculated earlier)
+if [ -d "$PROJECT_ROOT/storage" ]; then
+  if [ -w "$PROJECT_ROOT/storage" ]; then
     echo -e "${GREEN}✓ Storage directory writable${NC}"
   else
     echo -e "${RED}✗ Storage directory not writable${NC}"

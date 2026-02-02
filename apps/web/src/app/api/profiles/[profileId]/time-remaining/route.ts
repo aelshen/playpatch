@@ -10,10 +10,10 @@ import { getTimeRemainingToday, TimeLimits } from '@/lib/utils/time-limits';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { profileId: string } }
+  { params }: { params: Promise<{ profileId: string }> }
 ) {
   try {
-    const { profileId } = params;
+    const { profileId } = await params;
 
     // Get child profile with timeLimits
     const profile = await prisma.childProfile.findUnique({
