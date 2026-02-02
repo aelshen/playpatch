@@ -78,9 +78,14 @@ check_http_endpoint() {
 
   status_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
 
-  if [ "$status_code" = "$expected_status" ] || [ "$status_code" = "401" ] || [ "$status_code" = "403" ]; then
+  if [ "$status_code" = "$expected_status" ]; then
     echo -e "${GREEN}✓ Accessible (HTTP ${status_code})${NC}"
     return 0
+  elif [ "$status_code" = "401" ] || [ "$status_code" = "403" ]; then
+    echo -e "${YELLOW}⚠ Authentication required (HTTP ${status_code})${NC}"
+    echo -e "  ${YELLOW}Warning:${NC} Service is running but requires authentication"
+    ALL_HEALTHY=false
+    return 1
   else
     echo -e "${RED}✗ Not accessible (HTTP ${status_code})${NC}"
     if [ -n "$fix_command" ]; then

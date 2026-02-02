@@ -22,19 +22,24 @@ export function TimeRemainingBadge({
 }: TimeRemainingBadgeProps) {
   const [minutesRemaining, setMinutesRemaining] = useState(initialMinutesRemaining);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Refresh time remaining every minute
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         setIsLoading(true);
+        setHasError(false);
         const response = await fetch(`/api/profiles/${profileId}/time-remaining`);
         if (response.ok) {
           const data = await response.json();
           setMinutesRemaining(data.minutesRemaining);
+        } else {
+          setHasError(true);
         }
       } catch (error) {
         console.error('Failed to refresh time remaining:', error);
+        setHasError(true);
       } finally {
         setIsLoading(false);
       }
@@ -63,11 +68,16 @@ export function TimeRemainingBadge({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${selectedColor} ${className}`}
-      title={`Time limit: ${displayText}`}
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${selectedColor} ${className} ${hasError ? 'opacity-60' : ''}`}
+      title={hasError ? 'Unable to refresh time remaining' : `Time limit: ${displayText}`}
     >
-      <Clock className="h-4 w-4" />
+      <Clock className={`h-4 w-4 ${hasError ? 'animate-pulse' : ''}`} />
       <span className={isLoading ? 'opacity-50' : ''}>{displayText}</span>
+      {hasError && (
+        <span className="text-xs" title="Failed to update">
+          ⚠
+        </span>
+      )}
     </div>
   );
 }

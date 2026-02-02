@@ -13,7 +13,8 @@ Sentry.init({
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
   // Set `tracePropagationTargets` to control which URLs distributed tracing should be enabled for
-  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
+  // Add your production API domains here when deploying
+  tracePropagationTargets: ['localhost', /^https:\/\/.*\/api/],
 
   // Capture Replay for 10% of all sessions,
   // plus 100% of sessions with an error
