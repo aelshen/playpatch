@@ -182,20 +182,30 @@ These are standalone tasks that:
 
 ---
 
-### 8. Implement "Continue Watching" Skeleton
+### 8. Implement "Continue Watching" Section ✅ COMPLETED
 **Time:** 6 hours
 **Impact:** High - Core child feature
 **Difficulty:** Medium
 
 **Tasks:**
-- [ ] Query watch sessions with 10-90% completion
-- [ ] Create `ContinueWatching.tsx` component
-- [ ] Show progress overlay on thumbnail
-- [ ] Sort by most recent
-- [ ] Add to home screen
-- [ ] Test with multiple profiles
+- [x] Query watch sessions with 10-90% completion
+- [x] Create `ContinueWatching.tsx` component
+- [x] Show progress overlay on thumbnail
+- [x] Sort by most recent
+- [x] Add to home screen
+- [x] Test with multiple profiles
 
 **Acceptance:** Continue Watching section shows on home
+
+**Implemented:**
+- Enhanced existing ContinueWatching component with percentage-based filtering
+- Query filters for 10-90% completion (not just > 30 seconds)
+- Integrated with VideoProgressBar component for visual progress
+- Shows completed checkmark badge for finished videos
+- Already integrated in both Explorer and Toddler home screens
+- Responsive limits: 4 videos (toddler), 6 videos (explorer)
+- Sorts by most recently updated
+- Hides section when no videos to continue
 
 ---
 

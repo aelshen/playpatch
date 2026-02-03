@@ -13,13 +13,13 @@ interface ContinueWatchingProps {
 }
 
 export async function ContinueWatching({ childId, mode }: ContinueWatchingProps) {
-  // Fetch incomplete watch sessions (not completed, have progress)
+  // Fetch incomplete watch sessions with 10-90% completion
   const incompleteSessions = await prisma.watchSession.findMany({
     where: {
       childId,
       completed: false,
       lastPosition: {
-        gt: 30, // At least 30 seconds watched
+        gt: 0, // Has started watching
       },
     },
     include: {
@@ -32,16 +32,34 @@ export async function ContinueWatching({ childId, mode }: ContinueWatchingProps)
     orderBy: {
       updatedAt: 'desc',
     },
-    take: mode === 'toddler' ? 4 : 6,
+    take: 50, // Fetch more to filter by percentage
     distinct: ['videoId'], // One session per video
   });
 
-  // Extract unique videos
+  // Filter by 10-90% completion and map to video format
   const videos = incompleteSessions
-    .filter(session => session.video.status === 'READY' && session.video.approvalStatus === 'APPROVED')
+    .filter(session => {
+      // Only show ready and approved videos
+      if (session.video.status !== 'READY' || session.video.approvalStatus !== 'APPROVED') {
+        return false;
+      }
+
+      // Calculate percentage watched
+      const duration = session.video.duration;
+      if (duration === 0) return false;
+
+      const percentageWatched = session.lastPosition / duration;
+
+      // Only show videos with 10-90% completion
+      return percentageWatched >= 0.1 && percentageWatched <= 0.9;
+    })
+    .slice(0, mode === 'toddler' ? 4 : 6) // Limit after filtering
     .map(session => ({
       ...session.video,
-      watchProgress: session.lastPosition, // Add watch progress
+      watchProgress: {
+        position: session.lastPosition,
+        completed: session.completed,
+      },
     }));
 
   if (videos.length === 0) {
