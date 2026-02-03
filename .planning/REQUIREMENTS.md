@@ -75,9 +75,9 @@
 
 **Goal:** Graph loads fast (<2s), updates efficiently, and stays responsive at 50-100 node scale.
 
-- [ ] **PERF-01**: Graph database schema uses PostgreSQL with GraphNode and GraphEdge tables, child-scoped for isolation
-- [ ] **PERF-02**: Graph queries use Redis cache (1-hour TTL) for sub-10ms response time, invalidate on watch completion
-- [ ] **PERF-03**: Graph builder service processes watch history asynchronously via BullMQ jobs (5-10 second rebuild off critical path)
+- [x] **PERF-01**: Graph database schema uses PostgreSQL with GraphNode and GraphEdge tables, child-scoped for isolation
+- [x] **PERF-02**: Graph queries use Redis cache (1-hour TTL) for sub-10ms response time, invalidate on watch completion
+- [x] **PERF-03**: Graph builder service processes watch history asynchronously via BullMQ jobs (5-10 second rebuild off critical path)
 
 ---
 

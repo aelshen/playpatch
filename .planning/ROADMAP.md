@@ -13,7 +13,7 @@ This roadmap transforms PlayPatch from a video platform into a visual learning j
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Data Pipeline** - Graph database schema, caching infrastructure, API endpoints
+- [x] **Phase 1: Foundation & Data Pipeline** - Graph database schema, caching infrastructure, API endpoints
 - [ ] **Phase 2: AI Integration & Entity Quality** - Entity extraction with OpenAI, fuzzy matching, specificity filtering
 - [ ] **Phase 3: Interactive Visualization & Age Modes** - Force-directed graph with Explorer and Toddler modes
 - [ ] **Phase 4: Advanced Features & Parent Insights** - Entry points, parent dashboard, discovery enhancements
@@ -39,11 +39,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 
-- [ ] 01-01-PLAN.md — Graph schema and child isolation middleware
-- [ ] 01-02-PLAN.md — Cache service and graph queries
-- [ ] 01-03-PLAN.md — BullMQ graph builder job
-- [ ] 01-04-PLAN.md — Graph API endpoints
-- [ ] 01-05-PLAN.md — Gap closure: Add GraphNode unique constraint for upsert
+- [x] 01-01-PLAN.md — Graph schema and child isolation middleware
+- [x] 01-02-PLAN.md — Cache service and graph queries
+- [x] 01-03-PLAN.md — BullMQ graph builder job
+- [x] 01-04-PLAN.md — Graph API endpoints
+- [x] 01-05-PLAN.md — Gap closure: Add GraphNode unique constraint for upsert
 
 ### Phase 2: AI Integration & Entity Quality
 
@@ -118,9 +118,9 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 → 2 → 3 → 4
 
-| Phase                                    | Plans Complete | Status      | Completed |
-| ---------------------------------------- | -------------- | ----------- | --------- |
-| 1. Foundation & Data Pipeline            | 0/4            | Planned     | -         |
-| 2. AI Integration & Entity Quality       | 0/TBD          | Not started | -         |
-| 3. Interactive Visualization & Age Modes | 0/TBD          | Not started | -         |
-| 4. Advanced Features & Parent Insights   | 0/TBD          | Not started | -         |
+| Phase                                    | Plans Complete | Status      | Completed  |
+| ---------------------------------------- | -------------- | ----------- | ---------- |
+| 1. Foundation & Data Pipeline            | 5/5            | ✓ Complete  | 2026-02-03 |
+| 2. AI Integration & Entity Quality       | 0/TBD          | Not started | -          |
+| 3. Interactive Visualization & Age Modes | 0/TBD          | Not started | -          |
+| 4. Advanced Features & Parent Insights   | 0/TBD          | Not started | -          |
