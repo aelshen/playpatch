@@ -13,14 +13,40 @@ A self-hosted, parent-controlled video streaming platform designed to provide ch
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: One-Click Installer ⭐ Easiest
+
+Install PlayPatch with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yourusername/playpatch/main/install.sh | bash
+```
+
+Or download and run:
+
+```bash
+wget https://raw.githubusercontent.com/yourusername/playpatch/main/install.sh
+bash install.sh
+```
+
+**What the installer does:**
+- ✓ Checks prerequisites (Node.js, pnpm, Docker)
+- ✓ Clones the repository
+- ✓ Installs dependencies
+- ✓ Generates environment configuration
+- ✓ Starts all services
+
+**Time:** ~5 minutes | **Requirements:** Node.js 20+, pnpm, Docker Desktop
+
+### Option 2: Manual Setup
+
+#### Prerequisites
 
 - **Node.js** 20+ ([Download](https://nodejs.org/))
 - **pnpm** 8+ (`npm install -g pnpm`)
 - **Docker Desktop** ([Download](https://www.docker.com/get-started))
 - **Git**
 
-### One-Command Setup
+#### Installation Steps
 
 ```bash
 # Clone the repository
@@ -102,6 +128,28 @@ pnpm dev:all
 ```
 
 For more issues, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+### Uninstalling
+
+If you installed using the one-click installer:
+
+```bash
+bash ~/playpatch/uninstall.sh
+```
+
+Or manually:
+
+```bash
+# Stop all services
+pnpm dev:stop
+
+# Remove Docker containers and volumes
+pnpm docker:clean
+
+# Remove the project directory
+cd ..
+rm -rf playpatch
+```
 
 ## 📁 Project Structure
 
