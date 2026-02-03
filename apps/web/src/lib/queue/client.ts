@@ -37,25 +37,33 @@ export const QUEUE_NAMES = {
   CHANNEL_SYNC: 'channel-sync',
   CLEANUP: 'cleanup',
   REPORT_GENERATION: 'report-generation',
+  GRAPH_BUILD: 'graph-build',
 } as const;
 
 // Create queues
 export const videoDownloadQueue = new Queue(QUEUE_NAMES.VIDEO_DOWNLOAD, defaultQueueOptions);
 export const videoTranscodeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCODE, defaultQueueOptions);
-export const videoTranscribeQueue = new Queue(
-  QUEUE_NAMES.VIDEO_TRANSCRIBE,
-  defaultQueueOptions
-);
+export const videoTranscribeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCRIBE, defaultQueueOptions);
 export const thumbnailGenerateQueue = new Queue(
   QUEUE_NAMES.THUMBNAIL_GENERATE,
   defaultQueueOptions
 );
 export const channelSyncQueue = new Queue(QUEUE_NAMES.CHANNEL_SYNC, defaultQueueOptions);
 export const cleanupQueue = new Queue(QUEUE_NAMES.CLEANUP, defaultQueueOptions);
-export const reportGenerationQueue = new Queue(
-  QUEUE_NAMES.REPORT_GENERATION,
-  defaultQueueOptions
-);
+export const reportGenerationQueue = new Queue(QUEUE_NAMES.REPORT_GENERATION, defaultQueueOptions);
+
+export const graphBuilderQueue = new Queue(QUEUE_NAMES.GRAPH_BUILD, {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    // Graph builds can take longer, don't want aggressive retries
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+  },
+});
 
 /**
  * Add video download job
@@ -127,6 +135,27 @@ export async function addChannelSyncJob(data: { channelId: string }) {
 }
 
 /**
+ * Add graph build job for a child
+ * Triggered after watch session completes
+ */
+export async function addGraphBuildJob(data: {
+  childId: string;
+  videoId: string;
+  watchSessionId: string;
+  fullRebuild?: boolean; // True for full rebuild, false for incremental update
+}) {
+  // Deduplicate jobs for same child within 5 seconds
+  // Prevents rapid-fire updates during quick video switches
+  const jobId = `graph-build:${data.childId}:${data.fullRebuild ? 'full' : 'incremental'}`;
+
+  return await graphBuilderQueue.add('build', data, {
+    jobId,
+    // If job with same ID exists and is waiting, skip this one
+    delay: 5000, // Wait 5 seconds before processing
+  });
+}
+
+/**
  * Get queue stats
  */
 export async function getQueueStats(queueName: string) {
@@ -163,6 +192,7 @@ export const queues = {
   channelSync: channelSyncQueue,
   cleanup: cleanupQueue,
   reportGeneration: reportGenerationQueue,
+  graphBuilder: graphBuilderQueue,
 };
 
 export default queues;
