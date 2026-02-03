@@ -5,6 +5,7 @@
 
 import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
+import { graphBuilderWorker } from './graph-builder';
 import { logger } from '@/lib/logger';
 import { initializeStorage } from '@/lib/storage/client';
 
@@ -25,6 +26,9 @@ async function main() {
     const transcodeWorker = createVideoTranscodeWorker();
     logger.info('✓ Video transcode worker started');
 
+    // Graph builder worker (already started on import)
+    logger.info('✓ Graph builder worker started');
+
     logger.info('All workers initialized and ready');
 
     // Graceful shutdown
@@ -32,13 +36,13 @@ async function main() {
       logger.info('Shutting down workers...');
       await downloadWorker.close();
       await transcodeWorker.close();
+      await graphBuilderWorker.close();
       logger.info('Workers stopped');
       process.exit(0);
     };
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
-
   } catch (error) {
     logger.error(error, 'Failed to initialize workers');
     process.exit(1);
