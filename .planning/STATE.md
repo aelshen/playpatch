@@ -11,29 +11,29 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Current Position
 
 Phase: 1 of 4 (Foundation & Data Pipeline)
-Plan: 4 of 4 in phase 1
-Status: Phase complete
-Last activity: 2026-02-03 - Completed 01-04-PLAN.md (REST API Endpoints)
+Plan: 5 of 5 in phase 1
+Status: Phase complete - all verification gaps closed
+Last activity: 2026-02-03 - Completed 01-05-PLAN.md (GraphNode Unique Constraint - Gap Closure)
 
-Progress: [████░░░░░░] 100% (4/4 plans in phase 1)
+Progress: [████░░░░░░] 100% (5/5 plans in phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 3 min
-- Total execution time: 0.20 hours
+- Total execution time: 0.25 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
-| 01    | 4     | 12min | 3min     |
+| 01    | 5     | 15min | 3min     |
 
 **Recent Trend:**
 
-- Last 5 plans: 01-01 (3min), 01-02 (3min), 01-03 (3min), 01-04 (3min)
+- Last 5 plans: 01-01 (3min), 01-02 (3min), 01-03 (3min), 01-04 (3min), 01-05 (3min)
 - Trend: Consistent velocity at 3min/plan
 
 _Updated after each plan completion_
@@ -61,12 +61,16 @@ Recent decisions affecting current work:
 - (01-04) Topic neighborhood: max depth of 2 hops to prevent huge result sets
 - (01-04) Topic videos endpoint: no caching (on-demand, fresh data preferred)
 - (01-04) All endpoints validate child profile exists before querying graph
+- (01-05) Changed GraphNode @@index to @@unique for childId + normalizedLabel to enable Prisma upsert operations
+- (01-05) Manual migration file creation used when Prisma CLI non-interactive mode blocks automation
 
 ### Pending Todos
 
 None yet.
 
 ### Blockers/Concerns
+
+**Phase 1 (RESOLVED):** Missing unique constraint on GraphNode was blocking graph builder upsert operations. Fixed in 01-05-PLAN.md. All Phase 1 verification gaps now closed.
 
 **Phase 2 (AI Integration):** Entity extraction prompt engineering for children's content is niche. Research recommends budget 1-2 days for prompt iteration and quality validation during phase planning.
 
@@ -75,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 01-04-PLAN.md - REST API Endpoints (3 tasks, 3min) - PHASE 1 COMPLETE
+Stopped at: Completed 01-05-PLAN.md - GraphNode Unique Constraint (3 tasks, 3min) - PHASE 1 VERIFICATION COMPLETE
 Resume file: None (ready for Phase 2 planning)
