@@ -94,6 +94,8 @@ model ChildProfile {
   aiConversations AIConversation[]
   journalEntries  JournalEntry[]
   requests        RequestFromChild[]
+  graphNodes      GraphNode[]
+  graphEdges      GraphEdge[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -169,6 +171,7 @@ model Video {
   aiConversations AIConversation[]
   journalEntries  JournalEntry[]
   requests        RequestFromChild[]
+  graphNodeVideos GraphNodeVideo[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -528,4 +531,69 @@ enum JobStatus {
   RUNNING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// GRAPH MODELS
+// ============================================
+
+model GraphNode {
+  id              String       @id @default(cuid())
+  childId         String
+  child           ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  label           String // Display name (e.g., "Ocean Animals")
+  normalizedLabel String // Lowercase for fuzzy matching (e.g., "ocean animals")
+  category        String? // Domain classification: "Animals", "Science", "Art", etc.
+  totalWatchTime  Int          @default(0) // Seconds across all videos
+  videoCount      Int          @default(0)
+  firstSeenAt     DateTime     @default(now())
+  lastSeenAt      DateTime     @default(now())
+
+  // Relations
+  edges          GraphEdge[]       @relation("SourceNode")
+  incomingEdges  GraphEdge[]       @relation("TargetNode")
+  videos         GraphNodeVideo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([childId])
+  @@index([childId, normalizedLabel])
+  @@index([childId, category])
+  @@index([childId, totalWatchTime])
+}
+
+model GraphEdge {
+  id           String       @id @default(cuid())
+  childId      String
+  child        ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  sourceNodeId String
+  sourceNode   GraphNode    @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNodeId String
+  targetNode   GraphNode    @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  weight       Float // 0-1 for edge strength
+  metadata     Json? // Videos involved, timestamps, weight components
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([childId, sourceNodeId, targetNodeId])
+  @@index([childId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model GraphNodeVideo {
+  id             String    @id @default(cuid())
+  nodeId         String
+  node           GraphNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  videoId        String
+  video          Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  relevanceScore Float     @default(1.0) // How strongly video relates to topic
+
+  createdAt DateTime @default(now())
+
+  @@unique([nodeId, videoId])
+  @@index([nodeId])
+  @@index([videoId])
 }
