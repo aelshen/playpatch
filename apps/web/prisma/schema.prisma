@@ -557,8 +557,8 @@ model GraphNode {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([childId, normalizedLabel])
   @@index([childId])
-  @@index([childId, normalizedLabel])
   @@index([childId, category])
   @@index([childId, totalWatchTime])
 }
