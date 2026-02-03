@@ -35,7 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. BullMQ job processes watch history asynchronously and updates graph structure without blocking user interactions
 4. API endpoints serve graph data with child isolation enforced at database query level
 
-**Plans**: 4 plans in 3 waves
+**Plans**: 5 plans in 4 waves
 
 Plans:
 
@@ -43,6 +43,7 @@ Plans:
 - [ ] 01-02-PLAN.md — Cache service and graph queries
 - [ ] 01-03-PLAN.md — BullMQ graph builder job
 - [ ] 01-04-PLAN.md — Graph API endpoints
+- [ ] 01-05-PLAN.md — Gap closure: Add GraphNode unique constraint for upsert
 
 ### Phase 2: AI Integration & Entity Quality
 
