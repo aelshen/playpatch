@@ -7,6 +7,7 @@
 ## Overview
 
 These are standalone tasks that:
+
 - Provide immediate value
 - Don't require extensive planning
 - Can be done by a single developer
@@ -16,11 +17,13 @@ These are standalone tasks that:
 ## Priority 1: Immediate Impact (Do First)
 
 ### 1. Add Demo Video to README
+
 **Time:** 2 hours
 **Impact:** High - Helps users understand what PlayPatch does
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Record 3-minute demo showing:
   - Parent importing a video
   - Child browsing and watching
@@ -35,11 +38,13 @@ These are standalone tasks that:
 ---
 
 ### 2. Add Screenshots to Documentation
+
 **Time:** 1 hour
 **Impact:** Medium - Makes documentation more engaging
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Capture screenshots of:
   - Home screen
   - Video player
@@ -55,11 +60,13 @@ These are standalone tasks that:
 ---
 
 ### 3. Create Docker One-Click Installer ✅ COMPLETED
+
 **Time:** 4 hours
 **Impact:** High - Reduces setup friction
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [x] Create `install.sh` script:
   ```bash
   #!/bin/bash
@@ -82,13 +89,16 @@ These are standalone tasks that:
 ---
 
 ### 4. Improve Error Messages ✅ COMPLETED
+
 **Time:** 2 hours
 **Impact:** Medium - Better developer experience
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [x] Audit all error messages
 - [x] Make errors actionable:
+
   ```typescript
   // Before
   throw new Error('Database connection failed');
@@ -97,12 +107,14 @@ These are standalone tasks that:
   throw DatabaseErrors.CONNECTION_FAILED(cause);
   // Includes error code, message, and fix instructions
   ```
+
 - [x] Add error codes for categorization
 - [x] Document common errors in FAQ
 
 **Acceptance:** All errors have actionable messages
 
 **Implemented:**
+
 - Created `lib/errors/messages.ts` with ActionableError class
 - Added error categories: Database, AI, Storage, Video, Network, Auth, Config
 - Updated AI service and YouTube importer with actionable errors
@@ -113,11 +125,13 @@ These are standalone tasks that:
 ## Priority 2: User Experience (Next)
 
 ### 5. Add Dark Mode Support
+
 **Time:** 4 hours
 **Impact:** Medium - Many users prefer dark mode
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [ ] Install `next-themes`
 - [ ] Create dark color palette
 - [ ] Update Tailwind config
@@ -130,11 +144,13 @@ These are standalone tasks that:
 ---
 
 ### 6. Build Simple Progress Bar Component ✅ COMPLETED
+
 **Time:** 2 hours
 **Impact:** Medium - Visual feedback on video progress
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [x] Create `ProgressBar.tsx` component
 - [x] Add to video cards
 - [x] Show percentage complete
@@ -142,6 +158,7 @@ These are standalone tasks that:
 - [x] Test on different screen sizes
 
 **Example:**
+
 ```typescript
 <ProgressBar
   progress={0.65}
@@ -153,6 +170,7 @@ These are standalone tasks that:
 **Acceptance:** Progress bars show on video cards
 
 **Implemented:**
+
 - Created reusable ProgressBar component with 3 variants:
   - ProgressBar: Basic horizontal progress bar
   - VideoProgressBar: Specialized for video watch progress
@@ -166,11 +184,13 @@ These are standalone tasks that:
 ---
 
 ### 7. Add Video Thumbnail Generation
+
 **Time:** 4 hours
 **Impact:** High - Better visual browsing
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [ ] Install `fluent-ffmpeg`
 - [ ] Create thumbnail generation worker
 - [ ] Generate at video midpoint
@@ -183,11 +203,13 @@ These are standalone tasks that:
 ---
 
 ### 8. Implement "Continue Watching" Section ✅ COMPLETED
+
 **Time:** 6 hours
 **Impact:** High - Core child feature
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [x] Query watch sessions with 10-90% completion
 - [x] Create `ContinueWatching.tsx` component
 - [x] Show progress overlay on thumbnail
@@ -198,6 +220,7 @@ These are standalone tasks that:
 **Acceptance:** Continue Watching section shows on home
 
 **Implemented:**
+
 - Enhanced existing ContinueWatching component with percentage-based filtering
 - Query filters for 10-90% completion (not just > 30 seconds)
 - Integrated with VideoProgressBar component for visual progress
@@ -211,34 +234,48 @@ These are standalone tasks that:
 
 ## Priority 3: Developer Productivity (Polish)
 
-### 9. Add Code Formatting Pre-Commit Hook
+### 9. Add Code Formatting Pre-Commit Hook ✅ COMPLETED
+
 **Time:** 1 hour
 **Impact:** Medium - Consistent code style
 **Difficulty:** Easy
 
 **Tasks:**
-- [ ] Install Husky
-- [ ] Install lint-staged
-- [ ] Configure pre-commit hook:
+
+- [x] Install Husky
+- [x] Install lint-staged
+- [x] Configure pre-commit hook:
   ```json
   {
     "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
     "*.{json,md}": ["prettier --write"]
   }
   ```
-- [ ] Test on sample commit
-- [ ] Document in CONTRIBUTING.md
+- [x] Test on sample commit
+- [x] Document in CONTRIBUTING.md
 
 **Acceptance:** Code auto-formats on commit
+
+**Implemented:**
+
+- Installed Husky 9.1.7 and lint-staged 16.2.7
+- Created .husky/pre-commit hook that runs lint-staged
+- Configured lint-staged in package.json:
+  - TypeScript/JavaScript: ESLint --fix + Prettier
+  - JSON/Markdown/YAML: Prettier only
+- Updated CONTRIBUTING.md with comprehensive pre-commit hook documentation
+- Added "prepare": "husky" script to package.json for automatic setup
 
 ---
 
 ### 10. Create Development Environment Health Check
+
 **Time:** 2 hours
 **Impact:** Medium - Faster debugging
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Create `scripts/health-check.sh`
 - [ ] Check all services:
   - Docker running
@@ -250,6 +287,7 @@ These are standalone tasks that:
 - [ ] Show clear status messages
 
 **Example Output:**
+
 ```
 ✓ Docker running
 ✓ PostgreSQL connected
@@ -264,11 +302,13 @@ These are standalone tasks that:
 ---
 
 ### 11. Add TypeScript Path Aliases
+
 **Time:** 1 hour
 **Impact:** Low - Cleaner imports
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Configure in `tsconfig.json`:
   ```json
   {
@@ -286,11 +326,13 @@ These are standalone tasks that:
 - [ ] Document convention
 
 **Before:**
+
 ```typescript
 import { Button } from '../../../../components/ui/button';
 ```
 
 **After:**
+
 ```typescript
 import { Button } from '@/components/ui/button';
 ```
@@ -302,11 +344,13 @@ import { Button } from '@/components/ui/button';
 ## Priority 4: Documentation (Foundation)
 
 ### 12. Create Parent Dashboard Skeleton
+
 **Time:** 8 hours
 **Impact:** High - Foundation for Phase 3
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [ ] Create `/admin/dashboard` page
 - [ ] Build layout with:
   - Family overview card
@@ -322,11 +366,13 @@ import { Button } from '@/components/ui/button';
 ---
 
 ### 13. Add API Documentation with Swagger
+
 **Time:** 4 hours
 **Impact:** Medium - Better API discoverability
 **Difficulty:** Medium
 
 **Tasks:**
+
 - [ ] Install `swagger-jsdoc` and `swagger-ui-react`
 - [ ] Add JSDoc comments to API routes
 - [ ] Create `/api/docs` endpoint
@@ -334,6 +380,7 @@ import { Button } from '@/components/ui/button';
 - [ ] Test interactive docs
 
 **Example:**
+
 ```typescript
 /**
  * @swagger
@@ -357,11 +404,13 @@ export async function GET(req: Request) {
 ---
 
 ### 14. Create Troubleshooting FAQ
+
 **Time:** 2 hours
 **Impact:** Medium - Reduce support burden
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Create `docs/TROUBLESHOOTING.md`
 - [ ] Document common issues:
   - Docker not starting
@@ -379,11 +428,13 @@ export async function GET(req: Request) {
 ## Priority 5: Performance (Optional)
 
 ### 15. Add Image Optimization
+
 **Time:** 2 hours
 **Impact:** Medium - Faster page loads
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Audit all `<img>` tags
 - [ ] Replace with Next.js `<Image>`
 - [ ] Configure image domains
@@ -395,11 +446,13 @@ export async function GET(req: Request) {
 ---
 
 ### 16. Implement Skeleton Loading States
+
 **Time:** 4 hours
 **Impact:** Medium - Better perceived performance
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Create reusable skeleton components:
   - `VideoCardSkeleton`
   - `DashboardSkeleton`
@@ -413,11 +466,13 @@ export async function GET(req: Request) {
 ---
 
 ### 17. Add Database Query Logging (Development)
+
 **Time:** 1 hour
 **Impact:** Low - Easier optimization later
 **Difficulty:** Easy
 
 **Tasks:**
+
 - [ ] Enable Prisma query logging in dev
 - [ ] Log slow queries (>100ms)
 - [ ] Format logs nicely
@@ -426,9 +481,7 @@ export async function GET(req: Request) {
 ```typescript
 // apps/web/src/lib/db/client.ts
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development'
-    ? ['query', 'warn', 'error']
-    : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
 });
 ```
 
@@ -439,28 +492,34 @@ const prisma = new PrismaClient({
 ## How to Use This List
 
 ### Solo Developer
+
 Pick items in priority order. Start with Priority 1, move down.
 
 ### Team of 2-3
+
 - Person 1: Priority 1 (Immediate Impact)
 - Person 2: Priority 2 (User Experience)
 - Person 3: Priority 3 (Developer Productivity)
 
 ### Waiting on Decisions
+
 Work through Priority 4 (Documentation) while waiting for phase approval.
 
 ### Have 1 Hour?
+
 - Error messages (#4)
 - Path aliases (#11)
 - Pre-commit hook (#9)
 
 ### Have Half Day?
+
 - Dark mode (#5)
 - Demo video (#1)
 - Progress bars (#6)
 - Troubleshooting FAQ (#14)
 
 ### Have Full Day?
+
 - Dashboard skeleton (#12)
 - Continue watching (#8)
 - Thumbnail generation (#7)
@@ -469,6 +528,7 @@ Work through Priority 4 (Documentation) while waiting for phase approval.
 ## Tracking Progress
 
 Create a GitHub project board with columns:
+
 - 📋 Backlog
 - 🏃 In Progress
 - ✅ Done
@@ -478,6 +538,7 @@ Move items as you complete them. Celebrate small wins!
 ## Contributing Quick Wins
 
 Have an idea for a quick win? It should:
+
 1. Take <8 hours
 2. Provide clear value
 3. Not depend on other work
