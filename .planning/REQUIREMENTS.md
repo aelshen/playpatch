@@ -110,13 +110,41 @@
 
 ## Traceability Matrix
 
-_This section will be populated by the roadmap to show which phase addresses each requirement._
+_This section maps each requirement to its implementation phase._
 
-| REQ-ID   | Requirement                        | Phase | Status  |
-| -------- | ---------------------------------- | ----- | ------- |
-| GRAPH-01 | Force-directed graph visualization | TBD   | Pending |
-| GRAPH-02 | Zoom in/out                        | TBD   | Pending |
-| ...      |                                    |       |         |
+| REQ-ID    | Requirement Summary                                 | Phase   | Status  |
+| --------- | --------------------------------------------------- | ------- | ------- |
+| PERF-01   | PostgreSQL graph schema with child-scoped isolation | Phase 1 | Pending |
+| PERF-02   | Redis cache with <10ms response time                | Phase 1 | Pending |
+| PERF-03   | Asynchronous graph builder via BullMQ               | Phase 1 | Pending |
+| AI-01     | OpenAI entity extraction (3-5 topics per video)     | Phase 2 | Pending |
+| AI-02     | Fuzzy matching at 92% similarity threshold          | Phase 2 | Pending |
+| AI-03     | TF-IDF specificity filtering for generic terms      | Phase 2 | Pending |
+| AI-04     | Topic co-appearance edge weights                    | Phase 2 | Pending |
+| AI-05     | Category-based edge creation                        | Phase 2 | Pending |
+| AI-06     | Watch sequence edge creation                        | Phase 2 | Pending |
+| GRAPH-01  | Force-directed graph visualization                  | Phase 3 | Pending |
+| GRAPH-02  | Zoom in/out (pinch/wheel)                           | Phase 3 | Pending |
+| GRAPH-03  | Pan by dragging empty space                         | Phase 3 | Pending |
+| GRAPH-04  | Reset view button                                   | Phase 3 | Pending |
+| GRAPH-05  | Click node to select and show videos                | Phase 3 | Pending |
+| GRAPH-06  | Node highlight with neighbor dimming                | Phase 3 | Pending |
+| GRAPH-07  | Watched/unwatched visual distinction                | Phase 3 | Pending |
+| GRAPH-08  | Category filter dropdown                            | Phase 3 | Pending |
+| GRAPH-09  | Clustered/grouped layout                            | Phase 3 | Pending |
+| MODE-01   | Explorer mode (50-100 nodes, ages 5-12)             | Phase 3 | Pending |
+| MODE-02   | Toddler mode (5-8 bubbles, ages 2-4)                | Phase 3 | Pending |
+| MODE-03   | Toddler tap-only with 60px+ targets                 | Phase 3 | Pending |
+| MODE-04   | Toddler progressive disclosure                      | Phase 3 | Pending |
+| ENTRY-01  | "Explore Topics" button on watch page               | Phase 4 | Pending |
+| ENTRY-02  | "My Learning Map" card on home screen               | Phase 4 | Pending |
+| ENTRY-03  | Click node shows related videos sidebar             | Phase 4 | Pending |
+| PARENT-01 | Top 5-10 topics by watch time in dashboard          | Phase 4 | Pending |
+| PARENT-02 | Deep vs shallow engagement indicators               | Phase 4 | Pending |
+| PARENT-03 | Content gap highlighting (explored but few videos)  | Phase 4 | Pending |
+| PARENT-04 | Click topic to see video list with timestamps       | Phase 4 | Pending |
+
+**Coverage:** 29/29 v1 requirements mapped (100%)
 
 ---
 
@@ -136,4 +164,4 @@ _This section will be populated by the roadmap to show which phase addresses eac
 
 ---
 
-**Last updated:** 2026-02-03 after research synthesis and v1 scope approval
+**Last updated:** 2026-02-03 after roadmap creation with 100% requirement coverage
