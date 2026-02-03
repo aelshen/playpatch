@@ -81,27 +81,32 @@ These are standalone tasks that:
 
 ---
 
-### 4. Improve Error Messages
+### 4. Improve Error Messages ✅ COMPLETED
 **Time:** 2 hours
 **Impact:** Medium - Better developer experience
 **Difficulty:** Easy
 
 **Tasks:**
-- [ ] Audit all error messages
-- [ ] Make errors actionable:
+- [x] Audit all error messages
+- [x] Make errors actionable:
   ```typescript
   // Before
   throw new Error('Database connection failed');
 
   // After
-  throw new Error(
-    'Database connection failed. Check that PostgreSQL is running and DATABASE_URL is correct. Run: pnpm docker:dev'
-  );
+  throw DatabaseErrors.CONNECTION_FAILED(cause);
+  // Includes error code, message, and fix instructions
   ```
-- [ ] Add error codes for categorization
-- [ ] Document common errors in FAQ
+- [x] Add error codes for categorization
+- [x] Document common errors in FAQ
 
 **Acceptance:** All errors have actionable messages
+
+**Implemented:**
+- Created `lib/errors/messages.ts` with ActionableError class
+- Added error categories: Database, AI, Storage, Video, Network, Auth, Config
+- Updated AI service and YouTube importer with actionable errors
+- Created comprehensive TROUBLESHOOTING.md with solutions for all error codes
 
 ---
 
