@@ -11,29 +11,29 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Current Position
 
 Phase: 1 of 4 (Foundation & Data Pipeline)
-Plan: 2 of 4 in phase 1
+Plan: 3 of 4 in phase 1
 Status: In progress
-Last activity: 2026-02-03 - Completed 01-02-PLAN.md (Graph Queries & Cache)
+Last activity: 2026-02-03 - Completed 01-03-PLAN.md (Graph Building Worker)
 
-Progress: [██░░░░░░░░] 50% (2/4 plans in phase 1)
+Progress: [███░░░░░░░] 75% (3/4 plans in phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 3 min
-- Total execution time: 0.1 hours
+- Total execution time: 0.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
-| 01    | 2     | 6min  | 3min     |
+| 01    | 3     | 9min  | 3min     |
 
 **Recent Trend:**
 
-- Last 5 plans: 01-01 (3min), 01-02 (3min)
+- Last 5 plans: 01-01 (3min), 01-02 (3min), 01-03 (3min)
 - Trend: Consistent velocity at 3min/plan
 
 _Updated after each plan completion_
@@ -54,6 +54,9 @@ Recent decisions affecting current work:
 - (01-02) Cache keys use child-prefix pattern (graph:child:[id]:\*) for efficient invalidation
 - (01-02) Log scale for node size visualization prevents extreme outliers
 - (01-02) Weak edges pruned at 0.3 weight threshold for cleaner full graph
+- (01-03) Job deduplication with 5-second delay prevents rapid-fire updates during quick video switches
+- (01-03) Worker concurrency: 2, rate limit: 10/minute to prevent database overload
+- (01-03) Edge weight starts at 0.3 for co-appearance, increments by 0.1 on re-occurrence, capped at 1.0
 
 ### Pending Todos
 
@@ -68,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 01-02-PLAN.md - Graph Queries & Cache (3 tasks, 3min)
-Resume file: .planning/phases/01-foundation-data-pipeline/01-03-PLAN.md
+Stopped at: Completed 01-03-PLAN.md - Graph Building Worker (3 tasks, 3min)
+Resume file: .planning/phases/01-foundation-data-pipeline/01-04-PLAN.md
