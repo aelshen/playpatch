@@ -35,11 +35,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. BullMQ job processes watch history asynchronously and updates graph structure without blocking user interactions
 4. API endpoints serve graph data with child isolation enforced at database query level
 
-**Plans**: TBD
+**Plans**: 4 plans in 3 waves
 
 Plans:
 
-- [ ] 01-01: TBD during phase planning
+- [ ] 01-01-PLAN.md — Graph schema and child isolation middleware
+- [ ] 01-02-PLAN.md — Cache service and graph queries
+- [ ] 01-03-PLAN.md — BullMQ graph builder job
+- [ ] 01-04-PLAN.md — Graph API endpoints
 
 ### Phase 2: AI Integration & Entity Quality
 
@@ -116,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase                                    | Plans Complete | Status      | Completed |
 | ---------------------------------------- | -------------- | ----------- | --------- |
-| 1. Foundation & Data Pipeline            | 0/TBD          | Not started | -         |
+| 1. Foundation & Data Pipeline            | 0/4            | Planned     | -         |
 | 2. AI Integration & Entity Quality       | 0/TBD          | Not started | -         |
 | 3. Interactive Visualization & Age Modes | 0/TBD          | Not started | -         |
 | 4. Advanced Features & Parent Insights   | 0/TBD          | Not started | -         |
