@@ -14,7 +14,7 @@ This roadmap transforms PlayPatch from a video platform into a visual learning j
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Data Pipeline** - Graph database schema, caching infrastructure, API endpoints
-- [ ] **Phase 2: AI Integration & Entity Quality** - Entity extraction with OpenAI, fuzzy matching, specificity filtering
+- [x] **Phase 2: AI Integration & Entity Quality** - Entity extraction with OpenAI, fuzzy matching, specificity filtering
 - [ ] **Phase 3: Interactive Visualization & Age Modes** - Force-directed graph with Explorer and Toddler modes
 - [ ] **Phase 4: Advanced Features & Parent Insights** - Entry points, parent dashboard, discovery enhancements
 
@@ -65,9 +65,9 @@ Plans:
 
 Plans:
 
-- [ ] 02-01-PLAN.md — AI dependencies and topic extraction with OpenAI structured outputs
-- [ ] 02-02-PLAN.md — Fuzzy entity matching and TF-IDF specificity filtering
-- [ ] 02-03-PLAN.md — Edge weighting enhancement and topic extraction worker integration
+- [x] 02-01-PLAN.md — AI dependencies and topic extraction with OpenAI structured outputs
+- [x] 02-02-PLAN.md — Fuzzy entity matching and TF-IDF specificity filtering
+- [x] 02-03-PLAN.md — Edge weighting enhancement and topic extraction worker integration
 
 ### Phase 3: Interactive Visualization & Age Modes
 
@@ -123,6 +123,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase                                    | Plans Complete | Status      | Completed  |
 | ---------------------------------------- | -------------- | ----------- | ---------- |
 | 1. Foundation & Data Pipeline            | 5/5            | ✓ Complete  | 2026-02-03 |
-| 2. AI Integration & Entity Quality       | 0/3            | Not started | -          |
+| 2. AI Integration & Entity Quality       | 3/3            | ✓ Complete  | 2026-02-03 |
 | 3. Interactive Visualization & Age Modes | 0/TBD          | Not started | -          |
 | 4. Advanced Features & Parent Insights   | 0/TBD          | Not started | -          |

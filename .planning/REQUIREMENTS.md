@@ -47,12 +47,12 @@
 
 **Goal:** AI automatically builds smart connections between videos based on topics, categories, and watch patterns.
 
-- [ ] **AI-01**: System extracts 3-5 topics per video from title, description, and transcript using OpenAI structured outputs
-- [ ] **AI-02**: System fuzzy-matches extracted topics against existing entities (92% similarity threshold) to deduplicate
-- [ ] **AI-03**: System filters out generic topic terms (e.g., "fun", "learning") using TF-IDF specificity scoring
-- [ ] **AI-04**: System creates topic co-appearance edges weighted by how often topics appear together across videos
-- [ ] **AI-05**: System creates category-based edges connecting videos with same primary category
-- [ ] **AI-06**: System creates watch sequence edges connecting topics from videos watched in same session
+- [x] **AI-01**: System extracts 3-5 topics per video from title, description, and transcript using OpenAI structured outputs
+- [x] **AI-02**: System fuzzy-matches extracted topics against existing entities (92% similarity threshold) to deduplicate
+- [x] **AI-03**: System filters out generic topic terms (e.g., "fun", "learning") using TF-IDF specificity scoring
+- [x] **AI-04**: System creates topic co-appearance edges weighted by how often topics appear together across videos
+- [x] **AI-05**: System creates category-based edges connecting videos with same primary category
+- [x] **AI-06**: System creates watch sequence edges connecting topics from videos watched in same session
 
 ### Entry Points & Navigation
 
