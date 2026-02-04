@@ -61,11 +61,13 @@ Plans:
 4. Graph contains weighted edges based on topic co-appearance, shared categories, and watch sequence patterns
 5. Edge weight thresholds prune weak connections (<0.3) to prevent over-connected hairball visualization
 
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
 
 Plans:
 
-- [ ] 02-01: TBD during phase planning
+- [ ] 02-01-PLAN.md — AI dependencies and topic extraction with OpenAI structured outputs
+- [ ] 02-02-PLAN.md — Fuzzy entity matching and TF-IDF specificity filtering
+- [ ] 02-03-PLAN.md — Edge weighting enhancement and topic extraction worker integration
 
 ### Phase 3: Interactive Visualization & Age Modes
 
@@ -121,6 +123,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase                                    | Plans Complete | Status      | Completed  |
 | ---------------------------------------- | -------------- | ----------- | ---------- |
 | 1. Foundation & Data Pipeline            | 5/5            | ✓ Complete  | 2026-02-03 |
-| 2. AI Integration & Entity Quality       | 0/TBD          | Not started | -          |
+| 2. AI Integration & Entity Quality       | 0/3            | Not started | -          |
 | 3. Interactive Visualization & Age Modes | 0/TBD          | Not started | -          |
 | 4. Advanced Features & Parent Insights   | 0/TBD          | Not started | -          |
