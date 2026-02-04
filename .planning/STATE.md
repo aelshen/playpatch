@@ -11,31 +11,31 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Current Position
 
 Phase: 2 of 4 (AI Integration & Entity Quality)
-Plan: 1 of 3 in phase 2
+Plan: 2 of 3 in phase 2
 Status: In progress
-Last activity: 2026-02-03 - Completed 02-01-PLAN.md (OpenAI Structured Topic Extraction)
+Last activity: 2026-02-03 - Completed 02-02-PLAN.md (Entity Quality Services)
 
-Progress: [████████████░░░░░░░░░░░░░░░░░░░░] 38% (6/16 total plans across all phases)
+Progress: [██████████████░░░░░░░░░░░░░░░░░░] 44% (7/16 total plans across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 6
-- Average duration: 3.2 min
-- Total execution time: 0.32 hours
+- Total plans completed: 7
+- Average duration: 3.4 min
+- Total execution time: 0.40 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
 | 01    | 5     | 15min | 3min     |
-| 02    | 1     | 4min  | 4min     |
+| 02    | 2     | 10min | 5min     |
 
 **Recent Trend:**
 
-- Last 5 plans: 01-02 (3min), 01-03 (3min), 01-04 (3min), 01-05 (3min), 02-01 (4min)
-- Trend: Slight increase to 4min for Phase 2 (AI integration complexity)
+- Last 5 plans: 01-03 (3min), 01-04 (3min), 01-05 (3min), 02-01 (4min), 02-02 (6min)
+- Trend: Phase 2 plans averaging 5min (AI integration complexity)
 
 _Updated after each plan completion_
 
@@ -68,6 +68,11 @@ Recent decisions affecting current work:
 - (02-01) Temperature 0 for deterministic topic extraction (reproducible results)
 - (02-01) 13 educational categories balance specificity vs simplicity for toddler navigation
 - (02-01) Null return on errors enables graceful degradation in video ingestion pipeline
+- (02-02) 92% similarity threshold balances precision vs recall for topic deduplication
+- (02-02) token_set_ratio handles word order differences (ocean animals = animals in ocean)
+- (02-02) Pre-filter by category and first letter reduces O(n) fuzzy matching cost
+- (02-02) TF-IDF threshold 0.5 is conservative, prefers false negatives over false positives
+- (02-02) Two-stage filtering (stopwords + TF-IDF) optimizes performance
 
 ### Pending Todos
 
@@ -84,5 +89,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 02-01-PLAN.md (OpenAI Structured Topic Extraction)
-Resume file: None (ready for 02-02 execution)
+Stopped at: Completed 02-02-PLAN.md (Entity Quality Services)
+Resume file: None (ready for 02-03 execution)
