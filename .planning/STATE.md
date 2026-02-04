@@ -11,31 +11,31 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Current Position
 
 Phase: 2 of 4 (AI Integration & Entity Quality)
-Plan: 2 of 3 in phase 2
-Status: In progress
-Last activity: 2026-02-03 - Completed 02-02-PLAN.md (Entity Quality Services)
+Plan: 3 of 3 in phase 2
+Status: Phase complete ✓
+Last activity: 2026-02-03 - Completed 02-03-PLAN.md (AI Pipeline Integration)
 
-Progress: [██████████████░░░░░░░░░░░░░░░░░░] 44% (7/16 total plans across all phases)
+Progress: [████████████████░░░░░░░░░░░░░░░░] 50% (8/16 total plans across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 3.4 min
-- Total execution time: 0.40 hours
+- Total execution time: 0.48 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
 | 01    | 5     | 15min | 3min     |
-| 02    | 2     | 10min | 5min     |
+| 02    | 3     | 15min | 5min     |
 
 **Recent Trend:**
 
-- Last 5 plans: 01-03 (3min), 01-04 (3min), 01-05 (3min), 02-01 (4min), 02-02 (6min)
-- Trend: Phase 2 plans averaging 5min (AI integration complexity)
+- Last 5 plans: 01-04 (3min), 01-05 (3min), 02-01 (4min), 02-02 (6min), 02-03 (5min)
+- Trend: Phase 2 consistent at 5min avg (AI integration complexity stabilized)
 
 _Updated after each plan completion_
 
@@ -73,6 +73,13 @@ Recent decisions affecting current work:
 - (02-02) Pre-filter by category and first letter reduces O(n) fuzzy matching cost
 - (02-02) TF-IDF threshold 0.5 is conservative, prefers false negatives over false positives
 - (02-02) Two-stage filtering (stopwords + TF-IDF) optimizes performance
+- (02-03) Rate limit topic extraction to 10/min with concurrency 2 to prevent OpenAI quota exhaustion
+- (02-03) Use 2 retry attempts for AI jobs (fewer than default 3) since AI failures need investigation
+- (02-03) Add 2-second delay before topic extraction to let video metadata settle
+- (02-03) Category bonus of 0.1 applied only once per edge (not cumulative)
+- (02-03) Sequence bonus ranges from 0.05-0.3 with diminishing returns for topics watched in order
+- (02-03) Process all children in family when extracting topics (family-scoped graph building)
+- (02-03) Job deduplication by videoId prevents duplicate AI extractions
 
 ### Pending Todos
 
@@ -82,12 +89,12 @@ None yet.
 
 **Phase 1 (RESOLVED):** Missing unique constraint on GraphNode was blocking graph builder upsert operations. Fixed in 01-05-PLAN.md. All Phase 1 verification gaps now closed.
 
-**Phase 2 (AI Integration):** Entity extraction prompt engineering for children's content is niche. Research recommends budget 1-2 days for prompt iteration and quality validation during phase planning.
+**Phase 2 (COMPLETE):** AI integration pipeline complete. Topic extraction triggers automatically after video download, with full quality filtering and fuzzy deduplication. Ready for production use.
 
 **Phase 3 (Visualization):** Toddler usability testing with actual 2-4 year olds required before feature completion. Consider user testing methodology during phase planning.
 
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 02-02-PLAN.md (Entity Quality Services)
-Resume file: None (ready for 02-03 execution)
+Stopped at: Completed 02-03-PLAN.md (AI Pipeline Integration)
+Resume file: None (Phase 2 complete, ready for Phase 3)
