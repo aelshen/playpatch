@@ -6,6 +6,7 @@
 import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
 import { graphBuilderWorker } from './graph-builder';
+import { topicExtractionWorker } from './topic-extraction';
 import { logger } from '@/lib/logger';
 import { initializeStorage } from '@/lib/storage/client';
 
@@ -29,6 +30,9 @@ async function main() {
     // Graph builder worker (already started on import)
     logger.info('✓ Graph builder worker started');
 
+    // Topic extraction worker (already started on import)
+    logger.info('✓ Topic extraction worker started');
+
     logger.info('All workers initialized and ready');
 
     // Graceful shutdown
@@ -37,6 +41,7 @@ async function main() {
       await downloadWorker.close();
       await transcodeWorker.close();
       await graphBuilderWorker.close();
+      await topicExtractionWorker.close();
       logger.info('Workers stopped');
       process.exit(0);
     };
