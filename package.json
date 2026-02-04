@@ -29,7 +29,7 @@
     "dev:all": "bash infrastructure/scripts/dev-start.sh",
     "dev:stop": "bash infrastructure/scripts/dev-stop.sh",
     "health:check": "bash infrastructure/scripts/health-check.sh",
-    "health:api": "curl -s http://localhost:3000/api/health | jq",
+    "health:api": "curl -s http://localhost:3030/api/health | jq",
     "db:generate": "cd apps/web && pnpm prisma generate",
     "db:migrate": "cd apps/web && pnpm prisma migrate dev",
     "db:migrate:prod": "cd apps/web && pnpm prisma migrate deploy",

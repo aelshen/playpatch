@@ -6,33 +6,33 @@ version: '3.8'
 services:
   postgres:
     ports:
-      - "5433:5432"  # Use 5433 on host to avoid conflict with local PostgreSQL
+      - '5433:5432' # Use 5433 on host to avoid conflict with local PostgreSQL
     environment:
       POSTGRES_PASSWORD: playpatch_dev
 
   redis:
     ports:
-      - "6379:6379"
+      - '6379:6379'
     command: redis-server --appendonly yes
     # No password in dev for simplicity
 
   minio:
     ports:
-      - "9000:9000"  # API
-      - "9001:9001"  # Console
+      - '9000:9000' # API
+      - '9001:9001' # Console
     environment:
       MINIO_ROOT_USER: minio_admin
       MINIO_ROOT_PASSWORD: minio_password
 
   meilisearch:
     ports:
-      - "7700:7700"
+      - '7700:7700'
     environment:
       MEILI_ENV: development
 
   ollama:
     ports:
-      - "11434:11434"
+      - '11434:11434'
 
   # Web application (optional - can run locally with pnpm dev)
   # Uncomment to run in Docker
@@ -54,9 +54,9 @@ services:
   #     - MEILISEARCH_KEY=master_key_change_me
   #     - OLLAMA_URL=http://ollama:11434
   #     - NEXTAUTH_SECRET=dev_secret_change_me
-  #     - NEXTAUTH_URL=http://localhost:3000
+  #     - NEXTAUTH_URL=http://localhost:3030
   #   ports:
-  #     - "3000:3000"
+  #     - "3030:3030"
   #   volumes:
   #     - ../../apps/web:/app/apps/web
   #     - web_node_modules:/app/apps/web/node_modules
