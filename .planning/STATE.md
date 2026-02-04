@@ -6,35 +6,36 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 
 **Core value:** Visual discovery - children find new videos through intuitive topic exploration instead of search or browse, making content discovery feel like play.
 
-**Current focus:** Phase 1 - Foundation & Data Pipeline
+**Current focus:** Phase 2 - AI Integration & Entity Quality
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation & Data Pipeline)
-Plan: 5 of 5 in phase 1
-Status: Phase complete and verified ✓
-Last activity: 2026-02-03 - Completed 01-05-PLAN.md (GraphNode Unique Constraint - Gap Closure)
+Phase: 2 of 4 (AI Integration & Entity Quality)
+Plan: 1 of 3 in phase 2
+Status: In progress
+Last activity: 2026-02-03 - Completed 02-01-PLAN.md (OpenAI Structured Topic Extraction)
 
-Progress: [██████████] 100% (5/5 plans in phase 1)
+Progress: [████████████░░░░░░░░░░░░░░░░░░░░] 38% (6/16 total plans across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5
-- Average duration: 3 min
-- Total execution time: 0.25 hours
+- Total plans completed: 6
+- Average duration: 3.2 min
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 | ----- | ----- | ----- | -------- |
 | 01    | 5     | 15min | 3min     |
+| 02    | 1     | 4min  | 4min     |
 
 **Recent Trend:**
 
-- Last 5 plans: 01-01 (3min), 01-02 (3min), 01-03 (3min), 01-04 (3min), 01-05 (3min)
-- Trend: Consistent velocity at 3min/plan
+- Last 5 plans: 01-02 (3min), 01-03 (3min), 01-04 (3min), 01-05 (3min), 02-01 (4min)
+- Trend: Slight increase to 4min for Phase 2 (AI integration complexity)
 
 _Updated after each plan completion_
 
@@ -63,6 +64,10 @@ Recent decisions affecting current work:
 - (01-04) All endpoints validate child profile exists before querying graph
 - (01-05) Changed GraphNode @@index to @@unique for childId + normalizedLabel to enable Prisma upsert operations
 - (01-05) Manual migration file creation used when Prisma CLI non-interactive mode blocks automation
+- (02-01) Use OpenAI .parse() with zodResponseFormat for structured outputs (v6.16 requires .parse() not .create())
+- (02-01) Temperature 0 for deterministic topic extraction (reproducible results)
+- (02-01) 13 educational categories balance specificity vs simplicity for toddler navigation
+- (02-01) Null return on errors enables graceful degradation in video ingestion pipeline
 
 ### Pending Todos
 
@@ -79,5 +84,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 1 Complete and Verified ✓ (5 plans, 15min total, all must-haves verified)
-Resume file: None (ready for Phase 2 planning)
+Stopped at: Completed 02-01-PLAN.md (OpenAI Structured Topic Extraction)
+Resume file: None (ready for 02-02 execution)
