@@ -16,7 +16,6 @@ import {
   suggestAgeRating,
   mapCategories,
 } from '@/lib/media/youtube';
-import { videoDownloadQueue } from '@/lib/queue/client';
 import { logger } from '@/lib/logger';
 
 const importVideoSchema = z.object({
@@ -142,7 +141,7 @@ export async function importYouTubeVideoAction(
       ageRating: suggestedAgeRating,
       categories: suggestedCategories,
       topics: videoInfo.tags.slice(0, 10), // Limit to 10 tags
-      status: 'READY', // Mark as READY so it can be reviewed/approved
+      status: 'PENDING', // Awaiting approval — playbackMode set to EMBED on approval
     });
 
     logger.info({ videoId: video.id, title: video.title }, 'Created video record');
@@ -245,10 +244,8 @@ import { prisma } from '@/lib/db/client';
 import {
   isMagnetUri,
   extractMagnetHash,
-  extractMagnetName,
   getMagnetMetadata,
   formatBytes,
-  type MagnetMetadata,
 } from '@/lib/media/realdebrid';
 
 export type ImportMagnetState = {
@@ -301,7 +298,7 @@ export async function previewMagnetAction(magnetUri: string): Promise<{
         name: metadata.name,
         totalSize: metadata.totalSize,
         totalSizeFormatted: formatBytes(metadata.totalSize),
-        files: metadata.files.map(f => ({
+        files: metadata.files.map((f) => ({
           id: f.id,
           name: f.name,
           size: f.size,
@@ -402,7 +399,7 @@ export async function importMagnetAction(
     const filesToImport =
       selectedFileIds === 'all'
         ? metadata.files
-        : metadata.files.filter(f => selectedFileIds.includes(f.id));
+        : metadata.files.filter((f) => selectedFileIds.includes(f.id));
 
     if (filesToImport.length === 0) {
       return { error: 'No files selected for import' };
@@ -462,10 +459,7 @@ export async function importMagnetAction(
 
     const videos = await Promise.all(videoPromises);
 
-    logger.info(
-      { count: videos.length, hash },
-      'Created video records from magnet'
-    );
+    logger.info({ count: videos.length, hash }, 'Created video records from magnet');
 
     revalidatePath('/admin/content');
     revalidatePath('/admin/dashboard');
@@ -474,7 +468,7 @@ export async function importMagnetAction(
     return {
       success: true,
       message: `Imported ${videos.length} video(s) from torrent. Review and approve to start downloads.`,
-      files: filesToImport.map(f => ({
+      files: filesToImport.map((f) => ({
         id: f.id,
         name: f.name,
         size: f.size,

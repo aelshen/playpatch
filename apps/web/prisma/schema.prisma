@@ -143,6 +143,12 @@ model Video {
   approvedAt      DateTime?
   rejectionReason String?
 
+  // Playback
+  // NONE  = not yet watchable (awaiting approval / download not started)
+  // EMBED = watchable via YouTube embed (approved, download pending or failed)
+  // HLS   = watchable via our HLS player (download + transcode complete)
+  playbackMode PlaybackMode @default(NONE)
+
   // Metadata
   title       String
   description String?
@@ -197,6 +203,12 @@ enum VideoStatus {
   PROCESSING
   READY
   ERROR
+}
+
+enum PlaybackMode {
+  NONE
+  EMBED
+  HLS
 }
 
 enum ApprovalStatus {

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db/client';
 import { getCurrentChildProfile } from '@/lib/auth/session';
 import { TrackedVideoPlayer } from '@/components/player/tracked-video-player';
+import { SafeYouTubePlayer } from '@/components/player/safe-youtube-player';
 import { ageRatingToNumber, getAllowedAgeRatings } from '@/lib/utils/age-rating';
 import { VideoViewerLayout } from '@/components/child/watch/video-viewer-layout';
 import { VideoInfoSection } from '@/components/child/watch/video-info-section';
@@ -43,8 +44,12 @@ export default async function WatchPage({ params }: WatchPageProps) {
     notFound();
   }
 
-  // Check if video is ready
-  if (video.status !== 'READY') {
+  // Check if video is watchable — either via embed or HLS
+  const isWatchable =
+    video.approvalStatus === 'APPROVED' &&
+    (video.playbackMode === 'EMBED' || video.playbackMode === 'HLS');
+
+  if (!isWatchable) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-8 text-white">
         <div className="text-center">
@@ -52,13 +57,13 @@ export default async function WatchPage({ params }: WatchPageProps) {
           <p className="mb-6 text-gray-400">
             {video.approvalStatus === 'PENDING'
               ? 'This video is awaiting approval.'
-              : video.status === 'DOWNLOADING'
-              ? 'This video is being downloaded.'
-              : video.status === 'PROCESSING'
-              ? 'This video is being processed.'
-              : video.status === 'ERROR'
-              ? 'There was an error preparing this video.'
-              : 'This video is not available yet.'}
+              : video.approvalStatus === 'REJECTED'
+                ? 'This video is not available.'
+                : video.status === 'DOWNLOADING'
+                  ? 'This video is being downloaded.'
+                  : video.status === 'PROCESSING'
+                    ? 'This video is being processed.'
+                    : 'This video is not available yet.'}
           </p>
           <Link
             href={`/child/${childProfile.uiMode.toLowerCase()}`}
@@ -200,16 +205,24 @@ export default async function WatchPage({ params }: WatchPageProps) {
         </Link>
       }
       videoPlayer={
-        <TrackedVideoPlayer
-          video={{
-            id: video.id,
-            title: video.title,
-            familyId: video.familyId,
-            thumbnailPath: video.thumbnailPath,
-          }}
-          resumePosition={resumePosition}
-          className="h-full w-full"
-        />
+        video.playbackMode === 'HLS' ? (
+          <TrackedVideoPlayer
+            video={{
+              id: video.id,
+              title: video.title,
+              familyId: video.familyId,
+              thumbnailPath: video.thumbnailPath,
+            }}
+            resumePosition={resumePosition}
+            className="h-full w-full"
+          />
+        ) : (
+          <SafeYouTubePlayer
+            videoId={video.sourceId!}
+            title={video.title}
+            className="h-full w-full"
+          />
+        )
       }
       actionBar={
         <VideoActionsWrapper
