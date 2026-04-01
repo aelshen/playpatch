@@ -34,38 +34,63 @@ services:
     ports:
       - '11434:11434'
 
-  # Web application (optional - can run locally with pnpm dev)
-  # Uncomment to run in Docker
-  # web:
-  #   build:
-  #     context: ../..
-  #     dockerfile: infrastructure/docker/Dockerfile.web
-  #     target: development
-  #   container_name: playpatch-web
-  #   environment:
-  #     - NODE_ENV=development
-  #     - DATABASE_URL=postgresql://playpatch:playpatch_dev@postgres:5432/playpatch
-  #     - REDIS_URL=redis://redis:6379
-  #     - MINIO_ENDPOINT=minio
-  #     - MINIO_PORT=9000
-  #     - MINIO_ACCESS_KEY=minio_admin
-  #     - MINIO_SECRET_KEY=minio_password
-  #     - MEILISEARCH_URL=http://meilisearch:7700
-  #     - MEILISEARCH_KEY=master_key_change_me
-  #     - OLLAMA_URL=http://ollama:11434
-  #     - NEXTAUTH_SECRET=dev_secret_change_me
-  #     - NEXTAUTH_URL=http://localhost:3030
-  #   ports:
-  #     - "3030:3030"
-  #   volumes:
-  #     - ../../apps/web:/app/apps/web
-  #     - web_node_modules:/app/apps/web/node_modules
-  #     - ../../packages:/app/packages
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - playpatch
-  #   command: pnpm dev
+  # Web application
+  # Run services only (without web): docker compose ... up -d postgres redis minio meilisearch ollama
+  web:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.web
+      target: development
+    container_name: playpatch-web
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://playpatch:playpatch_dev@postgres:5432/playpatch
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=minio_admin
+      - MINIO_SECRET_KEY=minio_password
+      - MEILISEARCH_URL=http://meilisearch:7700
+      - MEILISEARCH_KEY=master_key_change_me
+      - OLLAMA_URL=http://ollama:11434
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-dev_secret_change_me}
+      - NEXTAUTH_URL=http://localhost:3030
+    ports:
+      - "3030:3030"
+    volumes:
+      - ../../apps/web:/app/apps/web
+      - web_node_modules:/app/apps/web/node_modules
+      - ../../packages:/app/packages
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playpatch
+    command: pnpm dev
+
+  # Background workers
+  workers:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.workers
+    container_name: playpatch-workers
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://playpatch:playpatch_dev@postgres:5432/playpatch
+      - REDIS_URL=redis://redis:6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=minio_admin
+      - MINIO_SECRET_KEY=minio_password
+      - OLLAMA_URL=http://ollama:11434
+    volumes:
+      - /tmp/playpatch-processing:/tmp/processing
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playpatch

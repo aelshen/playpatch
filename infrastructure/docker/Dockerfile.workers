@@ -1,4 +1,5 @@
 # Dockerfile for background workers
+# Workers live in apps/web/src/workers/ and run via tsx (no build step needed)
 
 FROM node:20-alpine AS base
 
@@ -12,9 +13,6 @@ RUN apk add --no-cache \
 # Install yt-dlp for YouTube downloads
 RUN pip3 install --break-system-packages yt-dlp
 
-# Optional: Install Whisper for local transcription
-# RUN pip3 install --break-system-packages openai-whisper
-
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
@@ -26,26 +24,11 @@ FROM base AS deps
 
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY turbo.json ./
-COPY packages/workers/package.json ./packages/workers/
-COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/ai-safety/package.json ./packages/ai-safety/
 
 RUN pnpm install --frozen-lockfile
-
-# ===================================
-# Builder Stage
-# ===================================
-FROM base AS builder
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/workers/node_modules ./packages/workers/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-
-COPY . .
-
-# Build packages
-RUN pnpm build --filter=@safestream/shared
-RUN pnpm build --filter=@safestream/workers
 
 # ===================================
 # Production Stage
@@ -56,18 +39,25 @@ ENV NODE_ENV production
 
 WORKDIR /app
 
-# Copy built packages
-COPY --from=builder /app/packages/workers/dist ./packages/workers/dist
-COPY --from=builder /app/packages/workers/node_modules ./packages/workers/node_modules
-COPY --from=builder /app/packages/workers/package.json ./packages/workers/package.json
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/package.json
+# Copy dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/ai-safety/node_modules ./packages/ai-safety/node_modules
 
-# Copy Prisma client (needed for database access)
-COPY --from=builder /app/apps/web/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/apps/web/node_modules/@prisma ./node_modules/@prisma
+# Copy source code needed by workers
+COPY apps/web/src ./apps/web/src
+COPY apps/web/package.json ./apps/web/
+COPY apps/web/tsconfig.json ./apps/web/
+COPY apps/web/prisma ./apps/web/prisma
+COPY packages/shared ./packages/shared
+COPY packages/ai-safety ./packages/ai-safety
+COPY turbo.json ./
 
-WORKDIR /app/packages/workers
+# Generate Prisma client
+WORKDIR /app/apps/web
+RUN pnpm prisma generate
 
-CMD ["node", "dist/index.js"]
+WORKDIR /app
+
+CMD ["node_modules/.bin/tsx", "apps/web/src/workers/index.ts"]
