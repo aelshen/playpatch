@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get safety filtering stats
+    // Get safety filtering stats, scoped to the authenticated user's family
     const stats = await getSafetyFilteringStats({
       childId: profileId,
+      familyId: user.familyId as string,
       startDate,
       endDate,
     });

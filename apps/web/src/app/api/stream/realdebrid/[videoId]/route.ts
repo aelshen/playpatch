@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
 import { getDownloadLinks } from '@/lib/media/realdebrid';
+import { getCurrentUserOrNull } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,9 +26,18 @@ export async function GET(
   const { videoId } = context.params;
 
   try {
-    // Get video from database
-    const video = await prisma.video.findUnique({
-      where: { id: videoId },
+    // Require authenticated user
+    const user = await getCurrentUserOrNull();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get video from database and verify it belongs to user's family
+    const video = await prisma.video.findFirst({
+      where: { id: videoId, familyId: user.familyId },
       select: {
         id: true,
         title: true,
@@ -54,19 +64,19 @@ export async function GET(
     }
 
     const metadata = video.metadata as any;
-    const torrentId = metadata?.torrentId;
+    const torrentHash = metadata?.torrentHash;
 
-    if (!torrentId) {
+    if (!torrentHash) {
       return NextResponse.json(
-        { error: 'Missing torrent ID in metadata' },
+        { error: 'Missing torrent hash in metadata' },
         { status: 400 }
       );
     }
 
-    logger.info({ videoId, torrentId }, 'Fetching RealDebrid streaming link');
+    logger.info({ videoId, torrentHash }, 'Fetching RealDebrid streaming link');
 
     // Get download links from RealDebrid
-    const links = await getDownloadLinks(torrentId);
+    const links = await getDownloadLinks(torrentHash);
 
     if (!links || links.length === 0) {
       return NextResponse.json(

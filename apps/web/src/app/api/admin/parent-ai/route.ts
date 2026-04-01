@@ -117,9 +117,16 @@ GUIDELINES:
 - Keep responses concise and actionable (2-4 short paragraphs max)
 - Don't make up data that isn't in the context`;
 
+    // Sanitize history to prevent prompt injection: only allow user/assistant roles,
+    // enforce string content, cap per-message length, and limit turn count.
+    const safeHistory = (history as any[])
+      .filter((m) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 2000) }))
+      .slice(-8);
+
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: systemPrompt },
-      ...history.slice(-8), // keep last 8 turns for context
+      ...safeHistory,
       { role: 'user', content: message },
     ];
 

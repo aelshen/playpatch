@@ -1,44 +1,30 @@
 /**
  * Playlists API Endpoint
- * GET /api/playlists?childProfileId=X - Get child's playlists
+ * GET /api/playlists - Get child's playlists
  * POST /api/playlists - Create a new playlist
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
+import { getCurrentChildProfile } from '@/lib/auth/session';
 
 /**
- * Get all playlists for a child
+ * Get all playlists for the authenticated child
  */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const childProfileId = searchParams.get('childProfileId');
-
-    // Validate parameters
-    if (!childProfileId) {
-      return NextResponse.json(
-        { error: 'childProfileId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify child profile exists
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
-      select: { id: true },
-    });
+    const childProfile = await getCurrentChildProfile();
 
     if (!childProfile) {
       return NextResponse.json(
-        { error: 'Child profile not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
     // Get playlists with video counts
     const playlists = await prisma.childPlaylist.findMany({
-      where: { childId: childProfileId },
+      where: { childId: childProfile.id },
       include: {
         videos: {
           include: {
@@ -82,38 +68,34 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Create a new playlist
+ * Create a new playlist for the authenticated child
  */
 export async function POST(request: NextRequest) {
   try {
+    const childProfile = await getCurrentChildProfile();
+
+    if (!childProfile) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { childProfileId, name, description } = body;
+    const { name, description } = body;
 
     // Validate parameters
-    if (!childProfileId || !name) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'childProfileId and name are required' },
+        { error: 'name is required' },
         { status: 400 }
       );
     }
 
-    // Verify child profile exists
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
-      select: { id: true },
-    });
-
-    if (!childProfile) {
-      return NextResponse.json(
-        { error: 'Child profile not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create playlist
+    // Create playlist using the authenticated child's id
     const playlist = await prisma.childPlaylist.create({
       data: {
-        childId: childProfileId,
+        childId: childProfile.id,
         name: name,
         description: description || null,
       },

@@ -44,9 +44,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get topics discussed
+    // Get topics discussed, scoped to the authenticated user's family
     const topics = await getTopicsDiscussed({
       childId: profileId,
+      familyId: user.familyId as string,
       startDate,
       endDate,
       limit,

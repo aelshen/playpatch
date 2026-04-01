@@ -11,37 +11,13 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
 import { AgeRating, SyncMode, SyncFrequency } from '@prisma/client';
+import { calculateNextSync } from '@/lib/sync/calculate-next-sync';
 
 interface UpdateChannelRequest {
   syncMode?: SyncMode;
   syncFrequency?: SyncFrequency;
   autoAgeRating?: AgeRating | null;
   autoCategories?: string[];
-}
-
-/**
- * Calculate next sync time based on frequency
- */
-function calculateNextSync(frequency: SyncFrequency): Date {
-  const now = new Date();
-
-  switch (frequency) {
-    case 'HOURLY':
-      now.setHours(now.getHours() + 1);
-      break;
-    case 'DAILY':
-      now.setDate(now.getDate() + 1);
-      break;
-    case 'WEEKLY':
-      now.setDate(now.getDate() + 7);
-      break;
-    case 'MANUAL':
-      // Set far in future for manual sync
-      now.setFullYear(now.getFullYear() + 10);
-      break;
-  }
-
-  return now;
 }
 
 export async function PUT(

@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: `Synced channel successfully`,
-        newVideos: result.newVideos,
       });
     }
 
@@ -56,9 +55,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Channel sync completed',
-      synced: result.synced,
+      queued: result.queued,
       failed: result.failed,
-      newVideos: result.newVideos,
     });
   } catch (error) {
     logger.error({ error }, 'Failed to sync channels');

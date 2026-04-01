@@ -6,33 +6,30 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
+import { getCurrentChildProfile } from '@/lib/auth/session';
 
 /**
  * Add a video to child's favorites
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { childProfileId, videoId } = body;
-
-    // Validate parameters
-    if (!childProfileId || !videoId) {
-      return NextResponse.json(
-        { error: 'childProfileId and videoId are required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify child profile exists
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
-      select: { id: true },
-    });
+    const childProfile = await getCurrentChildProfile();
 
     if (!childProfile) {
       return NextResponse.json(
-        { error: 'Child profile not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { videoId } = body;
+
+    // Validate parameters
+    if (!videoId) {
+      return NextResponse.json(
+        { error: 'videoId is required' },
+        { status: 400 }
       );
     }
 
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.favorite.findUnique({
       where: {
         childId_videoId: {
-          childId: childProfileId,
+          childId: childProfile.id,
           videoId: videoId,
         },
       },
@@ -66,10 +63,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create favorite
+    // Create favorite using the authenticated child's id
     const favorite = await prisma.favorite.create({
       data: {
-        childId: childProfileId,
+        childId: childProfile.id,
         videoId: videoId,
       },
     });
@@ -95,23 +92,32 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const childProfile = await getCurrentChildProfile();
+
+    if (!childProfile) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { childProfileId, videoId } = body;
+    const { videoId } = body;
 
     // Validate parameters
-    if (!childProfileId || !videoId) {
+    if (!videoId) {
       return NextResponse.json(
-        { error: 'childProfileId and videoId are required' },
+        { error: 'videoId is required' },
         { status: 400 }
       );
     }
 
-    // Try to delete the favorite
+    // Try to delete the favorite using the authenticated child's id
     try {
       await prisma.favorite.delete({
         where: {
           childId_videoId: {
-            childId: childProfileId,
+            childId: childProfile.id,
             videoId: videoId,
           },
         },

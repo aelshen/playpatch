@@ -10,6 +10,7 @@ import { streamAIChatMessage, isAIAvailable } from '@/lib/ai';
 import { getCurrentChildProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
+import { AGE_RATING_TO_NUMBER } from '@/lib/utils/age-rating';
 
 const chatMessageSchema = z.object({
   conversationId: z.string().optional(),
@@ -93,13 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate child age from age rating (approximate)
-    const ageRatingToAge: Record<string, number> = {
-      AGE_2_PLUS: 3,
-      AGE_4_PLUS: 5,
-      AGE_7_PLUS: 8,
-      AGE_10_PLUS: 11,
-    };
-    const childAge = ageRatingToAge[childProfile.ageRating] || 8;
+    const childAge = AGE_RATING_TO_NUMBER[childProfile.ageRating] || 8;
 
     logger.info(
       {

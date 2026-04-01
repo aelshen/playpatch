@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { downloadFile, BUCKETS } from '@/lib/storage/client';
 import { logger } from '@/lib/logger';
+import { getCurrentUserOrNull } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,21 @@ export async function GET(
     }
 
     const familyId = path[0];
+
+    // Require authenticated user and verify they belong to the requested family
+    const user = await getCurrentUserOrNull();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    if (user.familyId !== familyId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
     const videoId = path[1];
     const hlsMarker = path[2];
     const fileName = path.slice(3).join('/'); // Handle nested paths

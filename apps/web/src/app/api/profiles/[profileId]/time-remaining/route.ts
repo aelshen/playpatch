@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
 import { getTimeRemainingToday, TimeLimits } from '@/lib/utils/time-limits';
+import { getCurrentChildProfile } from '@/lib/auth/session';
 
 export async function GET(
   request: NextRequest,
@@ -14,6 +15,23 @@ export async function GET(
 ) {
   try {
     const { profileId } = await params;
+
+    const childProfile = await getCurrentChildProfile();
+
+    if (!childProfile) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the authenticated child is requesting their own profile
+    if (childProfile.id !== profileId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
 
     // Get child profile with timeLimits
     const profile = await prisma.childProfile.findUnique({

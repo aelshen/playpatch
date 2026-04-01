@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
 
     if (profileId && profileId !== 'all') {
       where.childId = profileId;
+    } else {
+      // Scope to the caller's family to prevent cross-family data leaks
+      where.child = { user: { familyId: user.familyId } };
     }
 
     // Get conversations with pagination

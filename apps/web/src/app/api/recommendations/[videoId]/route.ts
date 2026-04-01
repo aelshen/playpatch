@@ -1,11 +1,12 @@
 /**
  * Recommendations API Endpoint
- * GET /api/recommendations/[videoId]?childProfileId=X&limit=10
+ * GET /api/recommendations/[videoId]?limit=10
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getRecommendedVideos } from '@/lib/recommendations/engine';
 import { prisma } from '@/lib/db/client';
+import { getCurrentChildProfile } from '@/lib/auth/session';
 
 export async function GET(
   request: NextRequest,
@@ -13,17 +14,16 @@ export async function GET(
 ) {
   const { videoId } = params;
   const searchParams = request.nextUrl.searchParams;
-  const childProfileId = searchParams.get('childProfileId');
   const limitStr = searchParams.get('limit');
   const limit = limitStr ? parseInt(limitStr, 10) : 10;
 
   try {
+    const childProfile = await getCurrentChildProfile();
 
-    // Validate parameters
-    if (!childProfileId) {
+    if (!childProfile) {
       return NextResponse.json(
-        { error: 'childProfileId is required' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
@@ -34,29 +34,31 @@ export async function GET(
       );
     }
 
-    // Verify child profile exists and get familyId through user
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
+    // Fetch familyId via the child's user relation
+    const childProfileWithFamily = await prisma.childProfile.findUnique({
+      where: { id: childProfile.id },
       select: {
         id: true,
         user: {
           select: {
-            familyId: true
-          }
-        }
+            familyId: true,
+          },
+        },
       },
     });
 
-    if (!childProfile) {
+    if (!childProfileWithFamily) {
       return NextResponse.json(
         { error: 'Child profile not found' },
         { status: 404 }
       );
     }
 
-    // Verify video exists
-    const video = await prisma.video.findUnique({
-      where: { id: videoId },
+    const familyId = childProfileWithFamily.user.familyId;
+
+    // Verify the video exists and belongs to this family
+    const video = await prisma.video.findFirst({
+      where: { id: videoId, familyId },
       select: { id: true },
     });
 
@@ -70,8 +72,8 @@ export async function GET(
     // Get recommendations
     const recommendations = await getRecommendedVideos({
       currentVideoId: videoId,
-      childProfileId,
-      familyId: childProfile.user.familyId,
+      childProfileId: childProfile.id,
+      familyId,
       limit,
     });
 
@@ -100,7 +102,6 @@ export async function GET(
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       videoId,
-      childProfileId,
     });
     return NextResponse.json(
       {

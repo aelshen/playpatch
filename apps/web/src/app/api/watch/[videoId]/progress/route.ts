@@ -12,6 +12,7 @@ import {
   markSessionComplete,
 } from '@/lib/db/queries/watch-sessions';
 import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/db/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,23 +44,34 @@ export async function PATCH(
       );
     }
 
-    // Update progress
+    // Verify the watch session belongs to this child before updating
+    const ownedSession = await prisma.watchSession.findFirst({
+      where: { id: sessionId, childId: childProfile.id },
+    });
+    if (!ownedSession) {
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update progress using the verified session ID
     const session = await updateWatchProgress({
-      sessionId,
+      sessionId: ownedSession.id,
       lastPosition: Math.floor(lastPosition),
       duration: duration ? Math.floor(duration) : undefined,
     });
 
-    logger.debug({ sessionId, lastPosition, duration }, 'Watch progress updated');
+    logger.debug({ sessionId: ownedSession.id, lastPosition, duration }, 'Watch progress updated');
 
     // Check if video is almost complete (>90%)
     if (duration && lastPosition / duration > 0.9 && !session.completed) {
       await markSessionComplete({
-        sessionId,
+        sessionId: ownedSession.id,
         duration: Math.floor(duration),
       });
 
-      logger.info({ sessionId }, 'Watch session marked as complete');
+      logger.info({ sessionId: ownedSession.id }, 'Watch session marked as complete');
 
       return NextResponse.json({
         success: true,

@@ -1,26 +1,38 @@
 /**
  * Requests API Endpoint
  * POST /api/requests - Create a new request from child
- * GET /api/requests?childProfileId=X - Get requests for a child (optional)
+ * GET /api/requests - Get requests for a family (parent auth required)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/client';
+import { getCurrentChildProfile, getCurrentUserOrNull } from '@/lib/auth/session';
 
 /**
- * Get requests for a child (optional, mainly for admin dashboard)
+ * Get requests for a family (parent-facing, scoped to familyId)
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUserOrNull();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const childProfileId = searchParams.get('childProfileId');
     const status = searchParams.get('status');
 
-    const where: any = {};
-
-    if (childProfileId) {
-      where.childId = childProfileId;
-    }
+    // Scope requests to the family via child profiles that belong to this family
+    const where: any = {
+      child: {
+        user: {
+          familyId: user.familyId,
+        },
+      },
+    };
 
     if (status) {
       where.status = status;
@@ -68,29 +80,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { childProfileId, videoId, requestType, message } = body;
-
-    // Validate parameters
-    if (!childProfileId) {
-      return NextResponse.json(
-        { error: 'childProfileId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify child profile exists
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
-      select: { id: true, name: true },
-    });
+    const childProfile = await getCurrentChildProfile();
 
     if (!childProfile) {
       return NextResponse.json(
-        { error: 'Child profile not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
+
+    const body = await request.json();
+    const { videoId, requestType, message } = body;
 
     // If videoId provided, verify it exists
     if (videoId) {
@@ -116,10 +116,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create request
+    // Create request using the authenticated child's id
     const childRequest = await prisma.requestFromChild.create({
       data: {
-        childId: childProfileId,
+        childId: childProfile.id,
         videoId: videoId || null,
         requestType: requestType || 'MORE_LIKE_THIS',
         message: message || null,

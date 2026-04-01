@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get AI conversation stats
+    // Get AI conversation stats, scoped to the authenticated user's family
     const stats = await getAIConversationStats({
       childId: profileId,
+      familyId: user.familyId as string,
       startDate,
       endDate,
     });

@@ -41,16 +41,14 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {};
 
-    // Filter by child profile if not "all"
+    // Filter by child profile if not "all", always scoped to the caller's family
     if (profileId !== 'all') {
+      // Include familyId filter to prevent cross-family access with a guessed profileId
       where.childId = profileId;
+      where.child = { user: { familyId: user.familyId } };
     } else {
-      // Filter by user - get all child profiles for this user
-      const profiles = await prisma.childProfile.findMany({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      where.childId = { in: profiles.map((p) => p.id) };
+      // Scope to the caller's family
+      where.child = { user: { familyId: user.familyId } };
     }
 
     // Filter by date range

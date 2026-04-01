@@ -6,6 +6,17 @@
 export type AgeRating = 'AGE_2_PLUS' | 'AGE_4_PLUS' | 'AGE_7_PLUS' | 'AGE_10_PLUS';
 
 /**
+ * Maps age rating enum values to approximate child ages used for AI context.
+ * These are midpoint/representative ages rather than minimum ages.
+ */
+export const AGE_RATING_TO_NUMBER: Record<string, number> = {
+  AGE_2_PLUS: 3,
+  AGE_4_PLUS: 5,
+  AGE_7_PLUS: 8,
+  AGE_10_PLUS: 11,
+};
+
+/**
  * Map age rating enum to numeric value
  */
 export function ageRatingToNumber(rating: AgeRating | string): number {

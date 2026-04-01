@@ -34,22 +34,16 @@ export interface SafetyStats {
   safetyTrends: Array<{ date: string; flagged: number; total: number }>;
 }
 
-export interface PerformanceMetrics {
-  avgResponseTime: number;
-  totalTokensUsed: number;
-  errorRate: number;
-  performanceTrend: TimeSeriesDataPoint[];
-}
-
 /**
  * Get aggregate AI conversation statistics
  */
 export async function getAIConversationStats(params: {
   childId?: string;
+  familyId: string;
   startDate: Date;
   endDate: Date;
 }): Promise<AIConversationStats> {
-  const { childId, startDate, endDate } = params;
+  const { childId, familyId, startDate, endDate } = params;
 
   // Base where clause
   const where: any = {
@@ -61,6 +55,9 @@ export async function getAIConversationStats(params: {
 
   if (childId && childId !== 'all') {
     where.childId = childId;
+  } else {
+    // Scope to the caller's family to prevent cross-family data leaks
+    where.child = { user: { familyId } };
   }
 
   // Get conversations
@@ -120,11 +117,12 @@ export async function getAIConversationStats(params: {
  */
 export async function getTopicsDiscussed(params: {
   childId?: string;
+  familyId: string;
   startDate: Date;
   endDate: Date;
   limit?: number;
 }): Promise<TopicCount[]> {
-  const { childId, startDate, endDate, limit = 20 } = params;
+  const { childId, familyId, startDate, endDate, limit = 20 } = params;
 
   // Base where clause
   const where: any = {
@@ -136,6 +134,9 @@ export async function getTopicsDiscussed(params: {
 
   if (childId && childId !== 'all') {
     where.childId = childId;
+  } else {
+    // Scope to the caller's family to prevent cross-family data leaks
+    where.child = { user: { familyId } };
   }
 
   // Get conversations with topics
@@ -228,10 +229,11 @@ export async function getAIConversationsByPeriod(params: {
  */
 export async function getSafetyFilteringStats(params: {
   childId?: string;
+  familyId: string;
   startDate: Date;
   endDate: Date;
 }): Promise<SafetyStats> {
-  const { childId, startDate, endDate } = params;
+  const { childId, familyId, startDate, endDate } = params;
 
   // Base where clause for conversations
   const conversationWhere: any = {
@@ -243,6 +245,9 @@ export async function getSafetyFilteringStats(params: {
 
   if (childId && childId !== 'all') {
     conversationWhere.childId = childId;
+  } else {
+    // Scope to the caller's family to prevent cross-family data leaks
+    conversationWhere.child = { user: { familyId } };
   }
 
   // Get all messages through conversations
@@ -301,85 +306,3 @@ export async function getSafetyFilteringStats(params: {
   };
 }
 
-/**
- * Get AI performance metrics
- */
-export async function getAIPerformanceMetrics(params: {
-  childId?: string;
-  startDate: Date;
-  endDate: Date;
-}): Promise<PerformanceMetrics> {
-  const { childId, startDate, endDate } = params;
-
-  // Base where clause
-  const where: any = {
-    startedAt: {
-      gte: startDate,
-      lte: endDate,
-    },
-  };
-
-  if (childId && childId !== 'all') {
-    where.childId = childId;
-  }
-
-  // Get conversations with messages
-  const conversations = await prisma.aIConversation.findMany({
-    where,
-    include: {
-      messages: true,
-    },
-  });
-
-  const allMessages = conversations.flatMap((c) => c.messages);
-
-  // Calculate avg response time
-  const responseTimes = allMessages
-    .filter((m) => m.processingTime !== null)
-    .map((m) => m.processingTime!);
-  const avgResponseTime =
-    responseTimes.length > 0
-      ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-      : 0;
-
-  // Calculate total tokens used
-  const totalTokensUsed = allMessages
-    .filter((m) => m.tokenCount !== null)
-    .reduce((sum, m) => sum + (m.tokenCount || 0), 0);
-
-  // Error rate (conversations with flags / total)
-  const conversationsWithFlags = conversations.filter((c) => c.hasFlags).length;
-  const errorRate =
-    conversations.length > 0 ? (conversationsWithFlags / conversations.length) * 100 : 0;
-
-  // Performance trend (avg response time by day)
-  const dateMap = new Map<string, { times: number[]; count: number }>();
-
-  conversations.forEach((conv) => {
-    const dateKey = conv.startedAt.toISOString().split('T')[0];
-    const existing = dateMap.get(dateKey) || { times: [], count: 0 };
-
-    conv.messages.forEach((msg) => {
-      if (msg.processingTime !== null) {
-        existing.times.push(msg.processingTime);
-        existing.count++;
-      }
-    });
-
-    dateMap.set(dateKey, existing);
-  });
-
-  const performanceTrend = Array.from(dateMap.entries()).map(([date, data]) => ({
-    date,
-    count: data.times.length > 0
-      ? data.times.reduce((sum, time) => sum + time, 0) / data.times.length
-      : 0,
-  }));
-
-  return {
-    avgResponseTime,
-    totalTokensUsed,
-    errorRate,
-    performanceTrend,
-  };
-}
