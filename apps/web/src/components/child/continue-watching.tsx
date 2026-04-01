@@ -38,9 +38,12 @@ export async function ContinueWatching({ childId, mode }: ContinueWatchingProps)
 
   // Filter by 10-90% completion and map to video format
   const videos = incompleteSessions
-    .filter(session => {
-      // Only show ready and approved videos
-      if (session.video.status !== 'READY' || session.video.approvalStatus !== 'APPROVED') {
+    .filter((session) => {
+      // Only show watchable and approved videos
+      if (
+        !['EMBED', 'HLS'].includes(session.video.playbackMode) ||
+        session.video.approvalStatus !== 'APPROVED'
+      ) {
         return false;
       }
 
@@ -54,7 +57,7 @@ export async function ContinueWatching({ childId, mode }: ContinueWatchingProps)
       return percentageWatched >= 0.1 && percentageWatched <= 0.9;
     })
     .slice(0, mode === 'toddler' ? 4 : 6) // Limit after filtering
-    .map(session => ({
+    .map((session) => ({
       ...session.video,
       watchProgress: {
         position: session.lastPosition,
@@ -68,8 +71,10 @@ export async function ContinueWatching({ childId, mode }: ContinueWatchingProps)
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
-        <Play className={`${mode === 'toddler' ? 'w-8 h-8' : 'w-6 h-6'} text-blue-500 fill-blue-500`} />
+      <div className="mb-4 flex items-center gap-2">
+        <Play
+          className={`${mode === 'toddler' ? 'h-8 w-8' : 'h-6 w-6'} fill-blue-500 text-blue-500`}
+        />
         <h2 className={`${mode === 'toddler' ? 'text-3xl' : 'text-2xl'} font-bold text-gray-900`}>
           Continue Watching
         </h2>

@@ -28,6 +28,9 @@ const createProfileSchema = z.object({
 
 const updateProfileSchema = createProfileSchema.partial().extend({
   id: z.string(),
+  dailyLimitMinutes: z.coerce.number().min(0).max(1440).optional(),
+  weekdayLimitMinutes: z.coerce.number().min(0).max(1440).optional(),
+  weekendLimitMinutes: z.coerce.number().min(0).max(1440).optional(),
 });
 
 export type ProfileActionState = {
@@ -101,6 +104,9 @@ export async function updateChildProfileAction(
       pin: formData.get('pin') || undefined,
       theme: formData.get('theme'),
       allowedCategories: formData.getAll('allowedCategories'),
+      dailyLimitMinutes: formData.get('dailyLimitMinutes') || undefined,
+      weekdayLimitMinutes: formData.get('weekdayLimitMinutes') || undefined,
+      weekendLimitMinutes: formData.get('weekendLimitMinutes') || undefined,
     });
 
     if (!validatedFields.success) {
@@ -109,12 +115,24 @@ export async function updateChildProfileAction(
       };
     }
 
-    const { id, ...data } = validatedFields.data;
+    const { id, dailyLimitMinutes, weekdayLimitMinutes, weekendLimitMinutes, ...data } =
+      validatedFields.data;
+
+    // Build timeLimits object — null clears the limit
+    const hasAnyLimit = dailyLimitMinutes || weekdayLimitMinutes || weekendLimitMinutes;
+    const timeLimits = hasAnyLimit
+      ? {
+          daily: dailyLimitMinutes || undefined,
+          weekday: weekdayLimitMinutes || undefined,
+          weekend: weekendLimitMinutes || undefined,
+        }
+      : null;
 
     await updateChildProfile(id, {
       ...data,
       birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
       pin: data.pin || undefined,
+      timeLimits,
     });
 
     revalidatePath('/admin/profiles');
