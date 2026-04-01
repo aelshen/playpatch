@@ -66,10 +66,10 @@ services:
     image: minio/mc:latest
     container_name: playpatch-minio-setup
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-      sleep 5;
       /usr/bin/mc config host add minio http://minio:9000 ${MINIO_ACCESS_KEY:-minio_admin} ${MINIO_SECRET_KEY:-minio_password};
       /usr/bin/mc mb --ignore-existing minio/videos;
       /usr/bin/mc mb --ignore-existing minio/thumbnails;
@@ -80,6 +80,24 @@ services:
       echo 'MinIO buckets created successfully';
       exit 0;
       "
+    networks:
+      - playpatch
+
+  # Run Prisma migrations before app and workers start
+  # Builds from the same web Dockerfile so prisma client is available
+  migrate:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.web
+      target: builder
+    container_name: playpatch-migrate
+    working_dir: /app/apps/web
+    command: sh -c "npx prisma migrate deploy"
+    environment:
+      - DATABASE_URL=postgresql://playpatch:${DB_PASSWORD:-playpatch_dev}@postgres:5432/playpatch
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - playpatch
 

@@ -62,8 +62,8 @@ services:
       - web_node_modules:/app/apps/web/node_modules
       - ../../packages:/app/packages
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     networks:
@@ -88,8 +88,8 @@ services:
     volumes:
       - /tmp/playpatch-processing:/tmp/processing
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     networks:
