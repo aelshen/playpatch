@@ -17,7 +17,9 @@ import {
   Home,
   ChevronLeft,
   ChevronRight,
-  Youtube
+  Youtube,
+  MessageSquare,
+  Settings,
 } from 'lucide-react';
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
@@ -33,8 +35,10 @@ const navItems: NavItem[] = [
   { label: 'Profiles', href: '/admin/profiles', icon: Users },
   { label: 'Channels', href: '/admin/channels', icon: Youtube },
   { label: 'Content Library', href: '/admin/content', icon: Video },
+  { label: 'Requests', href: '/admin/requests', icon: MessageSquare },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Queue Monitor', href: '/admin/queue', icon: Clock },
+  { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -47,12 +51,12 @@ export function AdminSidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl transition-all duration-300 z-50 ${
+      className={`fixed left-0 top-0 z-50 h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl transition-all duration-300 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
       {/* Header */}
-      <div className="p-6 border-b border-gray-700">
+      <div className="border-b border-gray-700 p-6">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div>
@@ -62,20 +66,20 @@ export function AdminSidebar() {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg hover:bg-gray-700 transition-colors ml-auto"
+            className="ml-auto rounded-lg p-2 transition-colors hover:bg-gray-700"
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? (
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="h-5 w-5" />
             ) : (
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="h-5 w-5" />
             )}
           </button>
         </div>
       </div>
 
       {/* Navigation Items */}
-      <nav className="p-4 space-y-2 flex-1">
+      <nav className="flex-1 space-y-2 p-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -84,46 +88,40 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-lg'
                   : 'text-gray-300 hover:bg-gray-700 hover:text-white'
               }`}
               title={isCollapsed ? item.label : undefined}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && (
-                <span className="font-medium">{item.label}</span>
-              )}
+              <Icon className="h-5 w-5 flex-shrink-0" />
+              {!isCollapsed && <span className="font-medium">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t border-gray-700 space-y-2">
+      <div className="space-y-2 border-t border-gray-700 p-4">
         {/* Switch to Child View */}
         <Link
           href="/profiles"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-all"
+          className="flex items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-gray-700 hover:text-white"
           title={isCollapsed ? 'Switch to Child View' : undefined}
         >
-          <Home className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && (
-            <span className="font-medium">Child View</span>
-          )}
+          <Home className="h-5 w-5 flex-shrink-0" />
+          {!isCollapsed && <span className="font-medium">Child View</span>}
         </Link>
 
         {/* Sign Out */}
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-all"
+          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-gray-300 transition-all hover:bg-red-600 hover:text-white"
           title={isCollapsed ? 'Sign Out' : undefined}
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && (
-            <span className="font-medium">Sign Out</span>
-          )}
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!isCollapsed && <span className="font-medium">Sign Out</span>}
         </button>
       </div>
     </aside>

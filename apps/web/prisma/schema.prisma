@@ -160,6 +160,7 @@ model Video {
   // Content analysis
   transcript String?
   chapters   Json? // Chapter markers
+  aiAnalysis Json? // Safety analysis: { safetyScore, safeForChildren, ageRecommendation, concerns, summary }
 
   // Admin notes
   notes String?

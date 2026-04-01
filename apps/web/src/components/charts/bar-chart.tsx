@@ -87,13 +87,7 @@ export function BarChart({
     }
 
     return (
-      <text
-        x={x + width / 2}
-        y={y - 5}
-        fill="#6B7280"
-        textAnchor="middle"
-        fontSize="0.75rem"
-      >
+      <text x={x + width / 2} y={y - 5} fill="#6B7280" textAnchor="middle" fontSize="0.75rem">
         {formatAxis ? formatAxis(value) : value}
       </text>
     );
@@ -102,20 +96,22 @@ export function BarChart({
   const chartProps = {
     data,
     margin: { top: 20, right: 30, left: 20, bottom: 5 },
-    layout: horizontal ? ('horizontal' as const) : ('vertical' as const),
+    // Recharts convention: layout="vertical" = bars grow horizontally (left→right)
+    //                      layout="horizontal" = bars grow vertically (bottom→top)
+    layout: horizontal ? ('vertical' as const) : ('horizontal' as const),
   };
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsBarChart {...chartProps}>
-        {showGrid && (
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-        )}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />}
 
         {horizontal ? (
           <>
             <XAxis
               type="number"
+              domain={[0, 'dataMax']}
+              allowDecimals={false}
               stroke="#6B7280"
               style={{ fontSize: '0.875rem' }}
               tickFormatter={formatAxis}
@@ -130,16 +126,8 @@ export function BarChart({
           </>
         ) : (
           <>
-            <XAxis
-              dataKey={xKey}
-              stroke="#6B7280"
-              style={{ fontSize: '0.875rem' }}
-            />
-            <YAxis
-              stroke="#6B7280"
-              style={{ fontSize: '0.875rem' }}
-              tickFormatter={formatAxis}
-            />
+            <XAxis dataKey={xKey} stroke="#6B7280" style={{ fontSize: '0.875rem' }} />
+            <YAxis stroke="#6B7280" style={{ fontSize: '0.875rem' }} tickFormatter={formatAxis} />
           </>
         )}
 
@@ -156,10 +144,7 @@ export function BarChart({
         />
 
         {showLegend && yKeys.length > 1 && (
-          <Legend
-            wrapperStyle={{ fontSize: '0.875rem' }}
-            iconType="rect"
-          />
+          <Legend wrapperStyle={{ fontSize: '0.875rem' }} iconType="rect" />
         )}
 
         {yKeys.map((key, index) => {
@@ -176,11 +161,7 @@ export function BarChart({
             >
               {/* Add hover effect with darker shade */}
               {data.map((_, entryIndex) => (
-                <Cell
-                  key={`cell-${entryIndex}`}
-                  fill={color}
-                  opacity={0.9}
-                />
+                <Cell key={`cell-${entryIndex}`} fill={color} opacity={0.9} />
               ))}
             </Bar>
           );

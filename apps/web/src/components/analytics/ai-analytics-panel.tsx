@@ -10,6 +10,8 @@ import { MessageSquare, Shield, Zap, TrendingUp } from 'lucide-react';
 import { BarChart } from '@/components/charts';
 import { ConversationsOverTimeChart } from './conversations-over-time-chart';
 import { SafetyTrendsChart } from './safety-trends-chart';
+import { AIConversationsTable } from './ai-conversations-table';
+import { ParentAIAssistant } from './parent-ai-assistant';
 
 interface AIStats {
   totalConversations: number;
@@ -39,14 +41,11 @@ interface AIAnalyticsPanelProps {
   endDate: Date;
 }
 
-export function AIAnalyticsPanel({
-  profileId,
-  startDate,
-  endDate,
-}: AIAnalyticsPanelProps) {
+export function AIAnalyticsPanel({ profileId, startDate, endDate }: AIAnalyticsPanelProps) {
   const [aiStats, setAIStats] = useState<AIStats | null>(null);
   const [safetyStats, setSafetyStats] = useState<SafetyStats | null>(null);
   const [topics, setTopics] = useState<TopicCount[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,25 +62,34 @@ export function AIAnalyticsPanel({
         });
 
         // Fetch all AI analytics data in parallel
-        const [statsRes, safetyRes, topicsRes] = await Promise.all([
+        const [statsRes, safetyRes, topicsRes, convsRes] = await Promise.all([
           fetch(`/api/analytics/ai/stats?${params}`),
           fetch(`/api/analytics/ai/safety?${params}`),
           fetch(`/api/analytics/ai/topics?${params}&limit=10`),
+          fetch(`/api/analytics/ai/conversations?${params}&limit=50`),
         ]);
 
         if (!statsRes.ok || !safetyRes.ok || !topicsRes.ok) {
           throw new Error('Failed to fetch AI analytics');
         }
 
-        const [statsData, safetyData, topicsData] = await Promise.all([
+        const [statsData, safetyData, topicsData, convsData] = await Promise.all([
           statsRes.json(),
           safetyRes.json(),
           topicsRes.json(),
+          convsRes.ok ? convsRes.json() : Promise.resolve({ conversations: [] }),
         ]);
 
         setAIStats(statsData);
         setSafetyStats(safetyData);
         setTopics(topicsData.topics || []);
+        // Map API shape → table shape
+        setConversations(
+          (convsData.conversations ?? []).map((c: any) => ({
+            ...c,
+            hasFlags: c.wasFiltered ?? false,
+          }))
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -94,14 +102,11 @@ export function AIAnalyticsPanel({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
-          >
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          <div key={i} className="animate-pulse rounded-lg bg-white p-6 shadow-sm">
+            <div className="mb-4 h-4 w-3/4 rounded bg-gray-200"></div>
+            <div className="h-8 w-1/2 rounded bg-gray-200"></div>
           </div>
         ))}
       </div>
@@ -110,7 +115,7 @@ export function AIAnalyticsPanel({
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6">
         <p className="text-red-700">Error loading AI analytics: {error}</p>
       </div>
     );
@@ -134,32 +139,24 @@ export function AIAnalyticsPanel({
       <h2 className="text-2xl font-bold text-gray-900">AI Chat Analytics</h2>
 
       {/* 4-Column Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {/* Topics Discussed */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="w-5 h-5 text-purple-500" />
-            <h3 className="text-sm font-semibold text-gray-700">
-              Topics Discussed
-            </h3>
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-purple-500" />
+            <h3 className="text-sm font-semibold text-gray-700">Topics Discussed</h3>
           </div>
 
           {topics.length > 0 ? (
             <div className="space-y-2">
               {topics.slice(0, 5).map((topic) => (
-                <div key={topic.name} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 truncate flex-1">
-                    {topic.name}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900 ml-2">
-                    {topic.count}
-                  </span>
+                <div key={topic.name} className="flex items-center justify-between">
+                  <span className="flex-1 truncate text-sm text-gray-600">{topic.name}</span>
+                  <span className="ml-2 text-sm font-semibold text-gray-900">{topic.count}</span>
                 </div>
               ))}
               {topics.length > 5 && (
-                <p className="text-xs text-gray-500 mt-2">
-                  +{topics.length - 5} more topics
-                </p>
+                <p className="mt-2 text-xs text-gray-500">+{topics.length - 5} more topics</p>
               )}
             </div>
           ) : (
@@ -168,20 +165,16 @@ export function AIAnalyticsPanel({
         </div>
 
         {/* Conversation Quality */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-green-500" />
-            <h3 className="text-sm font-semibold text-gray-700">
-              Conversation Quality
-            </h3>
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-green-500" />
+            <h3 className="text-sm font-semibold text-gray-700">Conversation Quality</h3>
           </div>
 
           <div className="space-y-3">
             <div>
               <div className="text-xs text-gray-500">Total Conversations</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {aiStats.totalConversations}
-              </div>
+              <div className="text-2xl font-bold text-gray-900">{aiStats.totalConversations}</div>
             </div>
 
             <div>
@@ -212,12 +205,10 @@ export function AIAnalyticsPanel({
         </div>
 
         {/* Safety & Filtering */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield className="w-5 h-5 text-blue-500" />
-            <h3 className="text-sm font-semibold text-gray-700">
-              Safety & Filtering
-            </h3>
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-500" />
+            <h3 className="text-sm font-semibold text-gray-700">Safety & Filtering</h3>
           </div>
 
           <div className="space-y-3">
@@ -242,9 +233,7 @@ export function AIAnalyticsPanel({
                   <span
                     key={i}
                     className={
-                      i < Math.floor(safetyScore / 20)
-                        ? 'text-green-500'
-                        : 'text-gray-300'
+                      i < Math.floor(safetyScore / 20) ? 'text-green-500' : 'text-gray-300'
                     }
                   >
                     ●
@@ -256,12 +245,10 @@ export function AIAnalyticsPanel({
         </div>
 
         {/* Performance Metrics */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className="w-5 h-5 text-yellow-500" />
-            <h3 className="text-sm font-semibold text-gray-700">
-              Performance
-            </h3>
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-500" />
+            <h3 className="text-sm font-semibold text-gray-700">Performance</h3>
           </div>
 
           <div className="space-y-3">
@@ -281,9 +268,7 @@ export function AIAnalyticsPanel({
 
             <div>
               <div className="text-xs text-gray-500">Total Messages</div>
-              <div className="text-lg font-semibold text-gray-700">
-                {aiStats.totalMessages}
-              </div>
+              <div className="text-lg font-semibold text-gray-700">{aiStats.totalMessages}</div>
             </div>
           </div>
         </div>
@@ -291,10 +276,8 @@ export function AIAnalyticsPanel({
 
       {/* Topics Bar Chart (Full Width) */}
       {topicsChartData.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Top Topics Discussed
-          </h3>
+        <div className="rounded-lg bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">Top Topics Discussed</h3>
           <BarChart
             data={topicsChartData}
             xKey="topic"
@@ -309,18 +292,16 @@ export function AIAnalyticsPanel({
       )}
 
       {/* Time-Based Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ConversationsOverTimeChart
-          profileId={profileId}
-          startDate={startDate}
-          endDate={endDate}
-        />
-        <SafetyTrendsChart
-          profileId={profileId}
-          startDate={startDate}
-          endDate={endDate}
-        />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ConversationsOverTimeChart profileId={profileId} startDate={startDate} endDate={endDate} />
+        <SafetyTrendsChart profileId={profileId} startDate={startDate} endDate={endDate} />
       </div>
+
+      {/* Parent AI Assistant */}
+      <ParentAIAssistant profileId={profileId} startDate={startDate} endDate={endDate} />
+
+      {/* Conversations List */}
+      <AIConversationsTable conversations={conversations} profiles={[]} />
     </div>
   );
 }

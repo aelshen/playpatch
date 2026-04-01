@@ -127,7 +127,8 @@ async function getConversationHistory(conversationId: string): Promise<OllamaMes
 async function saveMessage(
   conversationId: string,
   role: 'CHILD' | 'ASSISTANT',
-  content: string
+  content: string,
+  metrics?: { processingTime?: number; tokenCount?: number }
 ): Promise<void> {
   try {
     await prisma.aIMessage.create({
@@ -135,11 +136,40 @@ async function saveMessage(
         conversationId,
         role,
         content,
+        ...(metrics?.processingTime !== undefined && { processingTime: metrics.processingTime }),
+        ...(metrics?.tokenCount !== undefined && { tokenCount: metrics.tokenCount }),
       },
     });
   } catch (error) {
     logger.error({ error, conversationId, role }, 'Failed to save message');
     // Don't throw - logging failure shouldn't break the conversation
+  }
+}
+
+/**
+ * Extract topics from the conversation messages and persist them.
+ * Runs fire-and-forget after each assistant reply — failures are silent.
+ */
+async function refreshConversationTopics(
+  conversationId: string,
+  videoTitle: string
+): Promise<void> {
+  try {
+    const { extractTopicsFromConversation } = await import('./topic-extractor');
+    const messages = await prisma.aIMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+      select: { role: true, content: true },
+    });
+    const topics = await extractTopicsFromConversation(messages, videoTitle);
+    if (topics.length > 0) {
+      await prisma.aIConversation.update({
+        where: { id: conversationId },
+        data: { topics },
+      });
+    }
+  } catch {
+    // non-critical
   }
 }
 
@@ -178,8 +208,7 @@ export async function sendAIChatMessage({
     }
 
     // Get or create conversation
-    const convId =
-      conversationId || (await getOrCreateConversation({ childId, videoId }));
+    const convId = conversationId || (await getOrCreateConversation({ childId, videoId }));
 
     // Get video details for context
     const video = await prisma.video.findUnique({
@@ -202,7 +231,7 @@ export async function sendAIChatMessage({
       childAge,
       videoTitle: video.title,
       videoSummary: video.description || undefined,
-      topics: video.topics as string[] || [],
+      topics: (video.topics as string[]) || [],
     });
 
     // Get conversation history
@@ -220,9 +249,12 @@ export async function sendAIChatMessage({
       'Sending message to AI provider'
     );
 
-    const llmResponse = AI_PROVIDER === 'openai'
-      ? await getOpenAIClient().sendMessage(sanitizedMessage, history, systemPrompt)
-      : await ollamaClient.sendMessage(sanitizedMessage, history, systemPrompt);
+    const llmStart = Date.now();
+    const llmResponse =
+      AI_PROVIDER === 'openai'
+        ? await getOpenAIClient().sendMessage(sanitizedMessage, history, systemPrompt)
+        : await ollamaClient.sendMessage(sanitizedMessage, history, systemPrompt);
+    const llmProcessingTime = Date.now() - llmStart;
 
     // Filter output for safety
     const outputFilter = filterOutput(llmResponse, childAge);
@@ -238,26 +270,30 @@ export async function sendAIChatMessage({
 
       // Save the filtered attempt to track issues
       await saveMessage(convId, 'CHILD', sanitizedMessage);
-      await saveMessage(
-        convId,
-        'ASSISTANT',
-        '[Response filtered for safety]'
-      );
+      await saveMessage(convId, 'ASSISTANT', '[Response filtered for safety]');
 
       return {
         conversationId: convId,
         response:
-          'I apologize, but I cannot provide a safe response to that question. Let\'s talk about something else from the video!',
+          "I apologize, but I cannot provide a safe response to that question. Let's talk about something else from the video!",
         filtered: true,
       };
     }
 
     // Use filtered output if links were removed
     const finalResponse = outputFilter.filtered || llmResponse;
+    // Rough token estimate: ~4 chars per token
+    const tokenCount = Math.ceil((sanitizedMessage.length + finalResponse.length) / 4);
 
     // Save messages to database
     await saveMessage(convId, 'CHILD', sanitizedMessage);
-    await saveMessage(convId, 'ASSISTANT', finalResponse);
+    await saveMessage(convId, 'ASSISTANT', finalResponse, {
+      processingTime: llmProcessingTime,
+      tokenCount,
+    });
+
+    // Refresh conversation topics based on what was actually discussed
+    void refreshConversationTopics(convId, video.title);
 
     logger.info(
       {
@@ -386,7 +422,11 @@ export async function* streamAIChatMessage({
   message,
   childAge,
   childName,
-}: SendMessageParams): AsyncGenerator<{ type: string; content?: string; conversationId?: string; error?: string }, void, unknown> {
+}: SendMessageParams): AsyncGenerator<
+  { type: string; content?: string; conversationId?: string; error?: string },
+  void,
+  unknown
+> {
   try {
     // Sanitize input
     const sanitizedMessage = sanitizeText(message);
@@ -411,8 +451,7 @@ export async function* streamAIChatMessage({
     }
 
     // Get or create conversation
-    const convId =
-      conversationId || (await getOrCreateConversation({ childId, videoId }));
+    const convId = conversationId || (await getOrCreateConversation({ childId, videoId }));
 
     yield { type: 'conversationId', conversationId: convId };
 
@@ -438,7 +477,7 @@ export async function* streamAIChatMessage({
       childAge,
       videoTitle: video.title,
       videoSummary: video.description || undefined,
-      topics: video.topics as string[] || [],
+      topics: (video.topics as string[]) || [],
     });
 
     // Get conversation history
@@ -457,9 +496,11 @@ export async function* streamAIChatMessage({
 
     // Stream from LLM
     let fullResponse = '';
-    const streamGenerator = AI_PROVIDER === 'openai'
-      ? getOpenAIClient().streamMessage(sanitizedMessage, history, systemPrompt)
-      : ollamaClient.streamMessage(sanitizedMessage, history, systemPrompt);
+    const llmStart = Date.now();
+    const streamGenerator =
+      AI_PROVIDER === 'openai'
+        ? getOpenAIClient().streamMessage(sanitizedMessage, history, systemPrompt)
+        : ollamaClient.streamMessage(sanitizedMessage, history, systemPrompt);
 
     for await (const chunk of streamGenerator) {
       fullResponse += chunk;
@@ -470,6 +511,7 @@ export async function* streamAIChatMessage({
         content: chunk,
       };
     }
+    const llmProcessingTime = Date.now() - llmStart;
 
     // Filter complete output for safety
     const outputFilter = filterOutput(fullResponse, childAge);
@@ -490,17 +532,24 @@ export async function* streamAIChatMessage({
       yield {
         type: 'error',
         content:
-          'I apologize, but I cannot provide a safe response to that question. Let\'s talk about something else from the video!',
+          "I apologize, but I cannot provide a safe response to that question. Let's talk about something else from the video!",
       };
       return;
     }
 
     // Use filtered output if links were removed
     const finalResponse = outputFilter.filtered || fullResponse;
+    const tokenCount = Math.ceil((sanitizedMessage.length + finalResponse.length) / 4);
 
     // Save messages to database
     await saveMessage(convId, 'CHILD', sanitizedMessage);
-    await saveMessage(convId, 'ASSISTANT', finalResponse);
+    await saveMessage(convId, 'ASSISTANT', finalResponse, {
+      processingTime: llmProcessingTime,
+      tokenCount,
+    });
+
+    // Refresh conversation topics based on what was actually discussed
+    void refreshConversationTopics(convId, video.title);
 
     logger.info(
       {

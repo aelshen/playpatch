@@ -6,8 +6,10 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { getChildProfileById } from '@/lib/db/queries/child-profiles';
+import { prisma } from '@/lib/db/client';
 
 export type ProfileSelectionState = {
   error?: string;
@@ -59,10 +61,26 @@ export async function selectProfileAction(profileId: string): Promise<ProfileSel
 }
 
 /**
- * Clear child session (exit child mode)
+ * Verify parent password and exit child mode.
+ * On success, clears the child session and redirects to /admin/dashboard.
+ * Returns an error string on failure.
  */
-export async function clearChildSessionAction(): Promise<void> {
+export async function verifyAndExitChildModeAction(password: string): Promise<string | null> {
+  const user = await getCurrentUser();
+
+  const fullUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { password: true },
+  });
+
+  if (!fullUser) return 'User not found.';
+
+  const bcrypt = await import('bcrypt');
+  const valid = await bcrypt.compare(password, fullUser.password);
+  if (!valid) return 'Incorrect password.';
+
   cookies().delete('child-session');
+  redirect('/admin/dashboard');
 }
 
 /**

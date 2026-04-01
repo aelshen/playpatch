@@ -6,7 +6,7 @@
 import { getCurrentUser } from '@/lib/auth/session';
 import { getChildProfilesByUserId } from '@/lib/db/queries/child-profiles';
 import { ProfileSelector } from '@/components/profiles/profile-selector';
-import Link from 'next/link';
+import Link from 'next/link'; // used by "Create First Profile" in the empty state
 
 export default async function ProfileSelectionPage() {
   const user = await getCurrentUser();
@@ -17,7 +17,7 @@ export default async function ProfileSelectionPage() {
       <div className="w-full max-w-5xl">
         {/* Header */}
         <div className="mb-12 text-center">
-          <h1 className="mb-2 text-5xl font-bold text-gray-900">Who's watching?</h1>
+          <h1 className="mb-2 text-5xl font-bold text-gray-900">Who&apos;s watching?</h1>
           <p className="text-lg text-gray-600">Select a profile to continue</p>
         </div>
 
@@ -30,9 +30,7 @@ export default async function ProfileSelectionPage() {
               <span className="text-6xl">👶</span>
             </div>
             <h2 className="mb-2 text-2xl font-semibold text-gray-900">No profiles yet</h2>
-            <p className="mb-6 text-gray-600">
-              Parents need to create child profiles first
-            </p>
+            <p className="mb-6 text-gray-600">Parents need to create child profiles first</p>
             <Link
               href="/admin/profiles/new"
               className="inline-block rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
@@ -41,16 +39,6 @@ export default async function ProfileSelectionPage() {
             </Link>
           </div>
         )}
-
-        {/* Footer */}
-        <div className="mt-12 text-center">
-          <Link
-            href="/admin/dashboard"
-            className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
-          >
-            ← Back to Admin Dashboard
-          </Link>
-        </div>
       </div>
     </div>
   );

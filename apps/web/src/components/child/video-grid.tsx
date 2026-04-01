@@ -26,25 +26,29 @@ interface Video {
 
 interface VideoGridProps {
   videos: Video[];
+  emptyMessage?: string;
+  emptyIcon?: string;
 }
 
-export function ChildVideoGrid({ videos }: VideoGridProps) {
+export function ChildVideoGrid({
+  videos,
+  emptyMessage = 'No videos here yet!',
+  emptyIcon = '🎬',
+}: VideoGridProps) {
   if (videos.length === 0) {
     return (
-      <div className="rounded-lg bg-white/50 p-8 text-center">
-        <p className="text-gray-600">No videos available yet.</p>
+      <div className="rounded-xl bg-white/60 p-10 text-center">
+        <div className="mb-3 text-5xl">{emptyIcon}</div>
+        <p className="text-lg font-medium text-gray-700">{emptyMessage}</p>
+        <p className="mt-1 text-sm text-gray-500">Check back soon for new videos!</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
       {videos.map((video) => (
-        <Link
-          key={video.id}
-          href={`/child/watch/${video.id}`}
-          className="group"
-        >
+        <Link key={video.id} href={`/child/watch/${video.id}`} className="group">
           <div className="relative aspect-video overflow-hidden rounded-lg bg-gray-800 shadow-md transition-shadow hover:shadow-xl">
             {/* Thumbnail */}
             {video.thumbnailPath && (
@@ -80,12 +84,8 @@ export function ChildVideoGrid({ videos }: VideoGridProps) {
 
             {/* Completed badge */}
             {video.watchProgress?.completed && (
-              <div className="absolute top-2 right-2 rounded-full bg-green-500 p-1">
-                <svg
-                  className="h-4 w-4 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
+              <div className="absolute right-2 top-2 rounded-full bg-green-500 p-1">
+                <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -97,23 +97,21 @@ export function ChildVideoGrid({ videos }: VideoGridProps) {
           </div>
 
           {/* Watch progress bar */}
-          {video.watchProgress && video.watchProgress.position > 0 && !video.watchProgress.completed && (
-            <div className="absolute bottom-0 left-0 right-0">
-              <VideoProgressBar
-                position={video.watchProgress.position}
-                duration={video.duration}
-              />
-            </div>
-          )}
+          {video.watchProgress &&
+            video.watchProgress.position > 0 &&
+            !video.watchProgress.completed && (
+              <div className="absolute bottom-0 left-0 right-0">
+                <VideoProgressBar
+                  position={video.watchProgress.position}
+                  duration={video.duration}
+                />
+              </div>
+            )}
 
           {/* Video info */}
           <div className="mt-2">
-            <h3 className="font-medium text-gray-900 line-clamp-2">
-              {video.title}
-            </h3>
-            {video.channel && (
-              <p className="text-sm text-gray-600">{video.channel.name}</p>
-            )}
+            <h3 className="line-clamp-2 font-medium text-gray-900">{video.title}</h3>
+            {video.channel && <p className="text-sm text-gray-600">{video.channel.name}</p>}
           </div>
         </Link>
       ))}

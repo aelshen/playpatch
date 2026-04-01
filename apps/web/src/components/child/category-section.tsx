@@ -21,7 +21,7 @@ export async function CategorySection({ category, ageRating, mode, icon }: Categ
   // Fetch videos in this category
   const videos = await prisma.video.findMany({
     where: {
-      status: 'READY',
+      playbackMode: { in: ['EMBED', 'HLS'] },
       approvalStatus: 'APPROVED',
       ageRating: { in: allowedRatings },
       categories: {
@@ -43,7 +43,7 @@ export async function CategorySection({ category, ageRating, mode, icon }: Categ
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="mb-4 flex items-center gap-2">
         {icon && <span className={mode === 'toddler' ? 'text-4xl' : 'text-3xl'}>{icon}</span>}
         <h2 className={`${mode === 'toddler' ? 'text-3xl' : 'text-2xl'} font-bold text-gray-900`}>
           {category}

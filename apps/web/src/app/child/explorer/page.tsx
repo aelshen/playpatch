@@ -4,7 +4,8 @@
  */
 
 import { redirect } from 'next/navigation';
-import { getChildSession, clearChildSessionAction } from '@/lib/actions/profile-selection';
+import Link from 'next/link';
+import { getChildSession } from '@/lib/actions/profile-selection';
 import { prisma } from '@/lib/db/client';
 import { ChildVideoGrid } from '@/components/child/video-grid';
 import { ChildSearchBar } from '@/components/child/search-bar';
@@ -78,14 +79,12 @@ export default async function ExplorerHomePage() {
                 profileId={childSession.profileId}
                 initialMinutesRemaining={timeRemaining}
               />
-              <form action={clearChildSessionAction}>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                >
-                  Exit
-                </button>
-              </form>
+              <Link
+                href="/child/exit"
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                Exit
+              </Link>
             </div>
           </div>
 

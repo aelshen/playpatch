@@ -23,6 +23,16 @@ import {
   APPROVAL_STATUS_COLORS,
 } from '@/lib/constants/video';
 
+interface AISafetyAnalysis {
+  safetyScore?: number;
+  safeForChildren?: boolean;
+  concerns?: string[];
+  ageRecommendation?: string;
+  topics?: string[];
+  summary?: string;
+  [key: string]: unknown;
+}
+
 interface Video {
   id: string;
   title: string;
@@ -36,6 +46,7 @@ interface Video {
   ageRating: string;
   categories: string[];
   topics: string[];
+  aiAnalysis?: AISafetyAnalysis | null;
   createdAt: Date;
   updatedAt: Date;
   channel: {
@@ -87,9 +98,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
   // Poll for queue status if video is approved but not downloaded
   useEffect(() => {
     const shouldPoll =
-      video.approvalStatus === 'APPROVED' &&
-      !hasVideoFile &&
-      video.status !== 'ERROR';
+      video.approvalStatus === 'APPROVED' && !hasVideoFile && video.status !== 'ERROR';
 
     if (shouldPoll) {
       setIsPolling(true);
@@ -171,7 +180,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
     <div className="space-y-6">
       {/* Download Status Alert */}
       {!hasVideoFile && video.approvalStatus !== 'REJECTED' && (
-        <div className="rounded-lg bg-blue-50 border-2 border-blue-200 p-4">
+        <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
           <div className="flex items-start space-x-3">
             <div className="text-2xl">
               {video.status === 'DOWNLOADING' && '⬇️'}
@@ -181,16 +190,22 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-blue-900">
-                {video.status === 'READY' && video.approvalStatus === 'PENDING' && 'Ready for review'}
-                {video.status === 'READY' && video.approvalStatus === 'APPROVED' && 'Waiting for download to start'}
+                {video.status === 'READY' &&
+                  video.approvalStatus === 'PENDING' &&
+                  'Ready for review'}
+                {video.status === 'READY' &&
+                  video.approvalStatus === 'APPROVED' &&
+                  'Waiting for download to start'}
                 {video.status === 'DOWNLOADING' && 'Downloading video'}
                 {video.status === 'PROCESSING' && 'Processing video'}
                 {video.status === 'ERROR' && 'Download failed'}
               </h3>
-              <p className="text-sm text-blue-700 mt-1">
-                {video.status === 'READY' && video.approvalStatus === 'PENDING' &&
+              <p className="mt-1 text-sm text-blue-700">
+                {video.status === 'READY' &&
+                  video.approvalStatus === 'PENDING' &&
                   'Review the video using the YouTube preview below, then approve to start download'}
-                {video.status === 'READY' && video.approvalStatus === 'APPROVED' &&
+                {video.status === 'READY' &&
+                  video.approvalStatus === 'APPROVED' &&
                   'Video is approved and will be downloaded shortly'}
                 {video.status === 'DOWNLOADING' &&
                   'The video is currently being downloaded from YouTube'}
@@ -204,7 +219,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
               {queueStatus && isPolling && (
                 <div className="mt-3 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-blue-600 font-medium">
+                    <span className="font-medium text-blue-600">
                       {queueStatus.queue?.state === 'waiting' && '⏳ In queue...'}
                       {queueStatus.queue?.state === 'active' && '▶️ Processing...'}
                       {queueStatus.queue?.state === 'completed' && '✅ Complete!'}
@@ -212,16 +227,14 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
                       {!queueStatus.queue && '🔍 Checking status...'}
                     </span>
                     {queueStatus.queue && (
-                      <span className="text-blue-500">
-                        Job #{queueStatus.queue.jobId}
-                      </span>
+                      <span className="text-blue-500">Job #{queueStatus.queue.jobId}</span>
                     )}
                   </div>
 
                   {/* Progress Bar */}
                   {queueStatus.queue?.progress > 0 && (
                     <div className="space-y-1">
-                      <div className="h-2 bg-blue-200 rounded-full overflow-hidden">
+                      <div className="h-2 overflow-hidden rounded-full bg-blue-200">
                         <div
                           className="h-full bg-blue-600 transition-all duration-300"
                           style={{ width: `${queueStatus.queue.progress}%` }}
@@ -238,7 +251,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
                   {/* Failed Reason */}
                   {queueStatus.queue?.failedReason && (
-                    <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
+                    <div className="mt-2 rounded bg-red-100 p-2 text-xs text-red-700">
                       <strong>Error:</strong> {queueStatus.queue.failedReason}
                     </div>
                   )}
@@ -258,12 +271,12 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
       {/* Downloaded Successfully */}
       {hasVideoFile && video.approvalStatus === 'APPROVED' && (
-        <div className="rounded-lg bg-green-50 border-2 border-green-200 p-4">
+        <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4">
           <div className="flex items-start space-x-3">
             <div className="text-2xl">✅</div>
             <div>
               <h3 className="font-semibold text-green-900">Video ready for viewing</h3>
-              <p className="text-sm text-green-700 mt-1">
+              <p className="mt-1 text-sm text-green-700">
                 This video has been downloaded and is available for children to watch
               </p>
             </div>
@@ -273,14 +286,12 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
       {/* Rejection Alert */}
       {video.approvalStatus === 'REJECTED' && (
-        <div className="rounded-lg bg-red-50 border-2 border-red-200 p-4">
+        <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4">
           <div className="flex items-start space-x-3">
             <div className="text-2xl">❌</div>
             <div>
               <h3 className="font-semibold text-red-900">Video is rejected</h3>
-              <p className="text-sm text-red-700 mt-1">
-                This video is not available for viewing
-              </p>
+              <p className="mt-1 text-sm text-red-700">This video is not available for viewing</p>
             </div>
           </div>
         </div>
@@ -321,7 +332,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
         {/* Title and Metadata */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{video.title}</h2>
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">{video.title}</h2>
           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
             {video.channel && (
               <span className="flex items-center">
@@ -365,7 +376,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
         {video.description && (
           <div className="mb-6">
             <h3 className="mb-2 font-semibold text-gray-900">Description</h3>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{video.description}</p>
+            <p className="whitespace-pre-wrap text-sm text-gray-700">{video.description}</p>
           </div>
         )}
 
@@ -403,6 +414,83 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
           </div>
         )}
 
+        {/* AI Safety Analysis */}
+        {video.aiAnalysis ? (
+          <div className="mb-6">
+            <h3 className="mb-3 font-semibold text-gray-900">AI Safety Analysis</h3>
+            <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              {/* Safety score */}
+              {typeof video.aiAnalysis.safetyScore === 'number' && (
+                <div className="flex items-center gap-3">
+                  <span className="w-32 text-sm font-medium text-gray-700">Safety Score</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        video.aiAnalysis.safetyScore >= 80
+                          ? 'bg-green-500'
+                          : video.aiAnalysis.safetyScore >= 50
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                      }`}
+                      style={{ width: `${video.aiAnalysis.safetyScore}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-sm font-bold text-gray-900">
+                    {video.aiAnalysis.safetyScore}/100
+                  </span>
+                </div>
+              )}
+
+              {/* Safe for children badge */}
+              {typeof video.aiAnalysis.safeForChildren === 'boolean' && (
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                      video.aiAnalysis.safeForChildren
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {video.aiAnalysis.safeForChildren ? '✓ Safe for children' : '⚠ Review needed'}
+                  </span>
+                  {video.aiAnalysis.ageRecommendation && (
+                    <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-800">
+                      {video.aiAnalysis.ageRecommendation}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* AI Summary */}
+              {video.aiAnalysis.summary && (
+                <p className="text-sm text-gray-700">{video.aiAnalysis.summary}</p>
+              )}
+
+              {/* Concerns */}
+              {Array.isArray(video.aiAnalysis.concerns) && video.aiAnalysis.concerns.length > 0 && (
+                <div>
+                  <p className="mb-1 text-xs font-medium text-red-700">Concerns flagged:</p>
+                  <ul className="space-y-1">
+                    {video.aiAnalysis.concerns.map((concern, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-red-600">
+                        <span className="flex-shrink-0">•</span>
+                        {concern}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <h3 className="mb-2 font-semibold text-gray-900">AI Safety Analysis</h3>
+            <p className="text-sm italic text-gray-500">
+              No AI analysis available for this video yet.
+            </p>
+          </div>
+        )}
+
         {/* Source URL */}
         <div className="mb-6">
           <h3 className="mb-2 font-semibold text-gray-900">Source</h3>
@@ -410,7 +498,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
             href={video.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:underline break-all"
+            className="break-all text-sm text-blue-600 hover:underline"
           >
             {video.sourceUrl}
           </a>
@@ -434,9 +522,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
             {/* Age Rating */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-3">
-                Age Rating *
-              </label>
+              <label className="mb-3 block text-sm font-medium text-gray-900">Age Rating *</label>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {AGE_RATINGS.map((rating) => (
                   <label
@@ -464,7 +550,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
             {/* Categories */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-3">
+              <label className="mb-3 block text-sm font-medium text-gray-900">
                 Categories * (select at least one)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -490,9 +576,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
                 ))}
               </div>
               {selectedCategories.length === 0 && (
-                <p className="mt-2 text-xs text-red-600">
-                  Please select at least one category
-                </p>
+                <p className="mt-2 text-xs text-red-600">Please select at least one category</p>
               )}
             </div>
 
@@ -539,7 +623,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
                   type="button"
                   onClick={handleRetry}
                   disabled={isRetrying}
-                  className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isRetrying ? 'Retrying...' : 'Retry Download'}
                 </button>
@@ -560,9 +644,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
       {showRejectDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="max-w-md rounded-lg bg-white p-6">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              Reject Video
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">Reject Video</h3>
             <p className="mb-4 text-sm text-gray-600">
               Please provide a reason for rejecting this video:
             </p>
@@ -595,9 +677,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
       {showDeleteDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="max-w-md rounded-lg bg-white p-6">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              Delete Video
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">Delete Video</h3>
             <p className="mb-4 text-sm text-gray-600">
               Are you sure you want to delete this video? This action cannot be undone.
             </p>
