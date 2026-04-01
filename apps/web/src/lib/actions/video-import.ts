@@ -9,13 +9,9 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser, getCurrentFamilyId } from '@/lib/auth/session';
 import { createVideo } from '@/lib/db/queries/videos';
-import {
-  isYouTubeUrl,
-  extractVideoId,
-  getYouTubeVideoInfo,
-  suggestAgeRating,
-  mapCategories,
-} from '@/lib/media/youtube';
+import { isYouTubeUrl, extractVideoId, suggestAgeRating, mapCategories } from '@/lib/media/youtube';
+import { getVideoInfo } from '@/lib/media/youtube-api';
+import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
 
 const importVideoSchema = z.object({
@@ -98,8 +94,8 @@ export async function importYouTubeVideoAction(
       };
     }
 
-    // Extract video metadata using yt-dlp
-    const videoInfo = await getYouTubeVideoInfo(url);
+    // Extract video metadata via YouTube Data API v3
+    const videoInfo = await getVideoInfo(url);
 
     // Get or create channel
     let channel = await prisma.channel.findFirst({
@@ -204,7 +200,7 @@ export async function previewYouTubeVideoAction(url: string): Promise<{
       };
     }
 
-    const videoInfo = await getYouTubeVideoInfo(url);
+    const videoInfo = await getVideoInfo(url);
     const suggestedAgeRating = suggestAgeRating(videoInfo);
     const suggestedCategories = mapCategories(videoInfo.categories, videoInfo.tags);
 
@@ -233,9 +229,6 @@ export async function previewYouTubeVideoAction(url: string): Promise<{
     };
   }
 }
-
-// Import prisma for channel operations
-import { prisma } from '@/lib/db/client';
 
 // ============================================================================
 // REALDEBRID IMPORT ACTIONS

@@ -5,6 +5,7 @@
 
 import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
+import { createChannelScanWorker } from './channel-scan';
 import { graphBuilderWorker } from './graph-builder';
 import { topicExtractionWorker } from './topic-extraction';
 import { logger } from '@/lib/logger';
@@ -27,6 +28,10 @@ async function main() {
     const transcodeWorker = createVideoTranscodeWorker();
     logger.info('✓ Video transcode worker started');
 
+    // Start channel scan worker
+    const channelScanWorker = createChannelScanWorker();
+    logger.info('✓ Channel scan worker started');
+
     // Graph builder worker (already started on import)
     logger.info('✓ Graph builder worker started');
 
@@ -40,6 +45,7 @@ async function main() {
       logger.info('Shutting down workers...');
       await downloadWorker.close();
       await transcodeWorker.close();
+      await channelScanWorker.close();
       await graphBuilderWorker.close();
       await topicExtractionWorker.close();
       logger.info('Workers stopped');

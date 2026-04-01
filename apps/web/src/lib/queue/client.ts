@@ -161,7 +161,16 @@ export async function addVideoImportJob(data: {
 /**
  * Add channel sync job
  */
-export async function addChannelSyncJob(data: { channelId: string }) {
+export async function addChannelSyncJob(data: {
+  channelId: string;
+  limit?: number;
+  filters?: {
+    minDuration?: number;
+    maxDuration?: number;
+    daysBack?: number;
+    minViews?: number;
+  };
+}) {
   return await channelSyncQueue.add('sync', data);
 }
 

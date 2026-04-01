@@ -131,8 +131,8 @@ export default async function WatchPage({ params }: WatchPageProps) {
   const relatedVideos = await prisma.video.findMany({
     where: {
       id: { not: videoId },
-      status: 'READY',
       approvalStatus: 'APPROVED',
+      playbackMode: { in: ['EMBED', 'HLS'] },
       ageRating: { in: allowedRatings },
       channelId: video.channelId,
     },

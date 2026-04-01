@@ -142,14 +142,15 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
 
   // ResizeObserver: YouTube controls are fixed ~48px, scale up for small players
   useEffect(() => {
-    if (!wrapperRef.current) return;
+    const el = wrapperRef.current;
+    if (!el) return;
     const update = () => {
-      const h = wrapperRef.current!.getBoundingClientRect().height;
+      const h = el.getBoundingClientRect().height;
       setBottomBarPx(h < 300 ? Math.round(h * 0.18) : 64);
     };
     update();
     const observer = new ResizeObserver(update);
-    observer.observe(wrapperRef.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
