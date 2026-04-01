@@ -220,6 +220,7 @@ export default async function WatchPage({ params }: WatchPageProps) {
           <SafeYouTubePlayer
             videoId={video.sourceId!}
             title={video.title}
+            dbVideoId={video.id}
             className="h-full w-full"
           />
         )

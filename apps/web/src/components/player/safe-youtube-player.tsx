@@ -67,6 +67,7 @@ interface YTPlayer {
 // Constants
 // ---------------------------------------------------------------------------
 const END_CARD_BUFFER_SECS = 22;
+const PROGRESS_UPDATE_INTERVAL_MS = 10_000; // 10 seconds
 
 // ---------------------------------------------------------------------------
 // YT API loader (singleton)
@@ -109,9 +110,16 @@ interface SafeYouTubePlayerProps {
   /** Video title — shown on the ended overlay */
   title: string;
   className?: string;
+  /** Database video ID — enables watch session tracking when provided */
+  dbVideoId?: string;
 }
 
-export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlayerProps) {
+export function SafeYouTubePlayer({
+  videoId,
+  title,
+  className,
+  dbVideoId,
+}: SafeYouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -119,12 +127,52 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
   const [overlay, setOverlay] = useState<OverlayKind>('none');
   const [bottomBarPx, setBottomBarPx] = useState(64);
 
+  // Watch session tracking refs (avoid stale closure issues)
+  const sessionIdRef = useRef<string | null>(null);
+  const hasStartedSessionRef = useRef<boolean>(false);
+  const lastProgressUpdateRef = useRef<number>(0);
+
   const stopPoll = useCallback(() => {
     if (pollRef.current) {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
   }, []);
+
+  // Start a watch session for this video
+  const startWatchSession = useCallback(async () => {
+    if (!dbVideoId || hasStartedSessionRef.current) return;
+    hasStartedSessionRef.current = true;
+    try {
+      const res = await fetch(`/api/watch/${dbVideoId}/start`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        sessionIdRef.current = data.sessionId;
+      }
+    } catch {
+      // non-critical — don't block playback
+    }
+  }, [dbVideoId]);
+
+  // Send a progress update (throttled)
+  const sendProgress = useCallback(
+    (currentTime: number, duration: number) => {
+      if (!dbVideoId || !sessionIdRef.current) return;
+      const now = Date.now();
+      if (now - lastProgressUpdateRef.current < PROGRESS_UPDATE_INTERVAL_MS) return;
+      lastProgressUpdateRef.current = now;
+      fetch(`/api/watch/${dbVideoId}/progress`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          lastPosition: Math.floor(currentTime),
+          duration: Math.floor(duration),
+        }),
+      }).catch(() => {});
+    },
+    [dbVideoId]
+  );
 
   const startPoll = useCallback(
     (player: YTPlayer) => {
@@ -135,9 +183,11 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
         if (d > 0 && d - t <= END_CARD_BUFFER_SECS) {
           setOverlay((prev) => (prev === 'ended' ? 'ended' : 'near-end'));
         }
+        // Track progress while playing
+        if (d > 0) sendProgress(t, d);
       }, 500);
     },
-    [stopPoll]
+    [stopPoll, sendProgress]
   );
 
   // ResizeObserver: YouTube controls are fixed ~48px, scale up for small players
@@ -160,6 +210,10 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
     setOverlay('none');
     playerRef.current?.destroy();
     playerRef.current = null;
+    // Reset tracking state for new video
+    sessionIdRef.current = null;
+    hasStartedSessionRef.current = false;
+    lastProgressUpdateRef.current = 0;
 
     loadYTApi(() => {
       if (!containerRef.current) return;
@@ -185,6 +239,7 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
                 if (prev === 'ended' || prev === 'near-end') return prev;
                 return 'none';
               });
+              startWatchSession();
               startPoll(instance);
             } else if (e.data === S.PAUSED) {
               stopPoll();
@@ -192,6 +247,12 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
             } else if (e.data === S.ENDED) {
               stopPoll();
               setOverlay('ended');
+              // Send final progress to mark session complete
+              const d = instance.getDuration();
+              if (d > 0) {
+                lastProgressUpdateRef.current = 0; // force send
+                sendProgress(d, d);
+              }
             }
           },
         },
@@ -207,7 +268,7 @@ export function SafeYouTubePlayer({ videoId, title, className }: SafeYouTubePlay
       }
       playerRef.current = null;
     };
-  }, [videoId, startPoll, stopPoll]);
+  }, [videoId, startPoll, stopPoll, startWatchSession, sendProgress]);
 
   const handleWatchAgain = () => {
     playerRef.current?.seekTo(0, true);

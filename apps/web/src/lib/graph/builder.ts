@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { invalidateGraphCache } from './cache';
 import type { EdgeMetadata } from './types';
 import { extractTopicsFromVideo } from '@/lib/ai/topic-extractor';
+import { analyzeVideoSafety } from '@/lib/ai/safety-analyzer';
 import {
   matchExistingTopic,
   normalizeTopicLabel,
@@ -281,6 +282,7 @@ export async function processVideoWithAI(
         description: true,
         categories: true,
         topics: true, // Existing topics
+        aiAnalysis: true, // Skip safety analysis if already done
         family: {
           select: {
             users: {
@@ -343,7 +345,27 @@ export async function processVideoWithAI(
       });
     }
 
-    // 3. Filter generic topics
+    // 3. Run safety analysis (if not already done — null means not yet run)
+    if (video.aiAnalysis === null || video.aiAnalysis === undefined) {
+      const safety = await analyzeVideoSafety({
+        title: video.title,
+        description: video.description || undefined,
+      });
+      if (safety) {
+        await prisma.video.update({
+          where: { id: videoId },
+          data: { aiAnalysis: safety as any },
+        });
+        logger.info({
+          message: 'Safety analysis saved',
+          videoId,
+          safetyScore: safety.safetyScore,
+          safeForChildren: safety.safeForChildren,
+        });
+      }
+    }
+
+    // 4. Filter generic topics
     const filteredTopics = filterGenericTopics(topics);
     result.topicsAfterFilter = filteredTopics.length;
 

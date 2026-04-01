@@ -16,7 +16,7 @@ import { prisma } from '@/lib/db/client';
 import { getChannelVideos } from '@/lib/media/youtube-api';
 import type { ChannelVideoListOptions } from '@/lib/media/youtube';
 import { importVideoFromYouTube } from '@/lib/video/import-from-youtube';
-import { QUEUE_NAMES } from '@/lib/queue/client';
+import { QUEUE_NAMES, addTopicExtractionJob } from '@/lib/queue/client';
 import { calculateNextSync } from '@/lib/sync/calculate-next-sync';
 import { logger } from '@/lib/logger';
 import type { AgeRating } from '@prisma/client';
@@ -72,7 +72,18 @@ async function processChannelScan(job: Job<ChannelScanJobData>) {
         autoAgeRating,
         autoCategories,
       });
-      if (result) newVideos++;
+      if (result) {
+        newVideos++;
+        try {
+          await addTopicExtractionJob({
+            videoId: result.video.id,
+            familyId: channel.familyId,
+            trigger: 'video_download',
+          });
+        } catch (err) {
+          logger.warn({ videoId: result.video.id, err }, 'Failed to queue topic/safety extraction');
+        }
+      }
     } catch (err) {
       logger.error({ err, videoId: video.id }, 'Failed to import video during channel scan');
     }

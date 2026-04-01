@@ -4,7 +4,8 @@
  */
 
 import { redirect } from 'next/navigation';
-import { getChildSession, clearChildSessionAction } from '@/lib/actions/profile-selection';
+import Link from 'next/link';
+import { getChildSession } from '@/lib/actions/profile-selection';
 import { prisma } from '@/lib/db/client';
 import { ChildVideoGrid } from '@/components/child/video-grid';
 import { ChildSearchBar } from '@/components/child/search-bar';
@@ -79,14 +80,12 @@ export default async function ToddlerHomePage() {
                 initialMinutesRemaining={timeRemaining}
                 className="text-base"
               />
-              <form action={clearChildSessionAction}>
-                <button
-                  type="submit"
-                  className="rounded-2xl border-4 border-gray-200 bg-white px-8 py-4 text-xl font-bold text-gray-700 shadow-xl hover:bg-gray-50"
-                >
-                  Exit
-                </button>
-              </form>
+              <Link
+                href="/child/exit"
+                className="rounded-2xl border-4 border-gray-200 bg-white px-8 py-4 text-xl font-bold text-gray-700 shadow-xl hover:bg-gray-50"
+              >
+                Exit
+              </Link>
             </div>
           </div>
 

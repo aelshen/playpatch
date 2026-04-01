@@ -28,6 +28,64 @@ Examples of GOOD topics: "sea turtles", "volcanic eruptions", "watercolor painti
 Examples of BAD topics: "fun facts", "learning time", "cool stuff", "kids activities"`;
 
 /**
+ * Extract the topics actually discussed in an AI conversation.
+ * Uses the child's questions and the assistant's responses, not video metadata.
+ *
+ * Returns up to 5 topic strings, or an empty array on failure.
+ */
+export async function extractTopicsFromConversation(
+  messages: Array<{ role: string; content: string }>,
+  videoTitle: string
+): Promise<string[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !messages.length) return [];
+
+  const openai = new OpenAI({ apiKey });
+
+  // Build a compact transcript of the conversation (limit to avoid token waste)
+  const transcript = messages
+    .filter((m) => m.role !== 'system' && !m.content.startsWith('[Response filtered'))
+    .slice(-12) // last 12 messages is plenty
+    .map((m) => `${m.role === 'CHILD' || m.role === 'user' ? 'Child' : 'Assistant'}: ${m.content}`)
+    .join('\n');
+
+  if (!transcript.trim()) return [];
+
+  const systemPrompt = `You extract the specific topics a child actually asked about or explored in a chat conversation about a video.
+
+Guidelines:
+- Focus on what the CHILD was curious about: specific facts, concepts, or questions they asked
+- Use concrete, descriptive topics (1-3 words each): "water cycle", "ocean currents", "rain formation"
+- AVOID generic terms: "science", "learning", "education", "kids"
+- Return 2-5 topics maximum
+- If the conversation was brief or off-topic, return fewer topics`;
+
+  try {
+    const completion = await openai.chat.completions.parse({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: `Video: "${videoTitle}"\n\nConversation:\n${transcript}`,
+        },
+      ],
+      response_format: zodResponseFormat(VideoTopicsSchema, 'video_topics'),
+      temperature: 0,
+    });
+
+    const result = completion.choices[0]?.message?.parsed;
+    return result?.topics ?? [];
+  } catch (error) {
+    logger.error({
+      message: 'Conversation topic extraction failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return [];
+  }
+}
+
+/**
  * Extract topics from video metadata using OpenAI structured outputs
  *
  * @param input Video title, description, and optional transcript
