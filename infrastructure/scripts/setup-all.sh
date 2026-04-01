@@ -300,7 +300,7 @@ print_next_steps() {
     echo -e "     ${GREEN}pnpm dev${NC}"
     echo ""
     echo "  2. Open your browser:"
-    echo -e "     ${GREEN}http://localhost:3000${NC}"
+    echo -e "     ${GREEN}http://localhost:3030${NC}"
     echo ""
     echo "  3. Login with demo account:"
     echo -e "     Email:    ${YELLOW}demo@example.com${NC}"

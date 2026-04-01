@@ -27,8 +27,9 @@
     "status": "bash infrastructure/scripts/status.sh",
     "postinstall": "cd apps/web && pnpm prisma generate",
     "dev:all": "bash infrastructure/scripts/dev-start.sh",
+    "dev:stop": "bash infrastructure/scripts/dev-stop.sh",
     "health:check": "bash infrastructure/scripts/health-check.sh",
-    "health:api": "curl -s http://localhost:3000/api/health | jq",
+    "health:api": "curl -s http://localhost:3030/api/health | jq",
     "db:generate": "cd apps/web && pnpm prisma generate",
     "db:migrate": "cd apps/web && pnpm prisma migrate dev",
     "db:migrate:prod": "cd apps/web && pnpm prisma migrate deploy",
@@ -50,15 +51,29 @@
     "workers:dev": "cd apps/web && pnpm workers",
     "ollama:pull": "docker exec -it playpatch-ollama ollama pull llama3.1:8b",
     "ollama:models": "docker exec playpatch-ollama ollama list",
-    "search:init": "cd apps/web && pnpm tsx scripts/init-search.ts"
+    "search:init": "cd apps/web && pnpm tsx scripts/init-search.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@playwright/test": "^1.42.1",
     "@types/node": "^20.11.19",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.2.5",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tsx": "^4.7.1",
     "turbo": "^1.12.4",
     "typescript": "^5.3.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "packageManager": "pnpm@8.15.3"
 }

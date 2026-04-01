@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -43,4 +45,18 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Sentry configuration
+const sentryWebpackPluginOptions = {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+
+  // Suppresses source map uploading logs during build
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+};
+
+// Only wrap with Sentry if DSN is configured
+module.exports = process.env.SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+  : nextConfig;

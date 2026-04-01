@@ -43,8 +43,7 @@ export async function checkRedis(): Promise<HealthStatus> {
   const start = Date.now();
   try {
     // Dynamic import to avoid loading Redis in all contexts
-    const { getRedisClient } = await import('@/lib/cache/client');
-    const redis = getRedisClient();
+    const { redis } = await import('@/lib/cache/client');
 
     await redis.ping();
     const latency = Date.now() - start;
@@ -105,10 +104,9 @@ export async function checkStorage(): Promise<HealthStatus> {
 export async function checkMeilisearch(): Promise<HealthStatus> {
   const start = Date.now();
   try {
-    const { getMeilisearchClient } = await import('@/lib/search/client');
-    const client = getMeilisearchClient();
+    const { meiliSearchClient } = await import('@/lib/search/client');
 
-    const health = await client.health();
+    const health = await meiliSearchClient.health();
     const latency = Date.now() - start;
 
     return {

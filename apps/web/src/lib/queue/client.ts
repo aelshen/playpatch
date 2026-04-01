@@ -5,6 +5,7 @@
 
 import { Queue, QueueOptions } from 'bullmq';
 import Redis from 'ioredis';
+import { logger } from '@/lib/logger';
 
 const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -37,24 +38,62 @@ export const QUEUE_NAMES = {
   CHANNEL_SYNC: 'channel-sync',
   CLEANUP: 'cleanup',
   REPORT_GENERATION: 'report-generation',
+  GRAPH_BUILD: 'graph-build',
+  TOPIC_EXTRACTION: 'topic-extraction',
 } as const;
+
+export interface TopicExtractionJobData {
+  videoId: string;
+  familyId: string; // For scoping to family's children
+  trigger: 'video_download' | 'manual_rebuild';
+}
 
 // Create queues
 export const videoDownloadQueue = new Queue(QUEUE_NAMES.VIDEO_DOWNLOAD, defaultQueueOptions);
 export const videoTranscodeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCODE, defaultQueueOptions);
-export const videoTranscribeQueue = new Queue(
-  QUEUE_NAMES.VIDEO_TRANSCRIBE,
-  defaultQueueOptions
-);
+export const videoTranscribeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCRIBE, defaultQueueOptions);
 export const thumbnailGenerateQueue = new Queue(
   QUEUE_NAMES.THUMBNAIL_GENERATE,
   defaultQueueOptions
 );
 export const channelSyncQueue = new Queue(QUEUE_NAMES.CHANNEL_SYNC, defaultQueueOptions);
 export const cleanupQueue = new Queue(QUEUE_NAMES.CLEANUP, defaultQueueOptions);
-export const reportGenerationQueue = new Queue(
-  QUEUE_NAMES.REPORT_GENERATION,
-  defaultQueueOptions
+export const reportGenerationQueue = new Queue(QUEUE_NAMES.REPORT_GENERATION, defaultQueueOptions);
+
+export const graphBuilderQueue = new Queue(QUEUE_NAMES.GRAPH_BUILD, {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    // Graph builds can take longer, don't want aggressive retries
+    attempts: 2,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+  },
+});
+
+export const topicExtractionQueue = new Queue<TopicExtractionJobData>(
+  QUEUE_NAMES.TOPIC_EXTRACTION,
+  {
+    ...defaultQueueOptions,
+    defaultJobOptions: {
+      ...defaultQueueOptions.defaultJobOptions,
+      attempts: 2, // Fewer retries - AI failures often need investigation
+      backoff: {
+        type: 'exponential',
+        delay: 10000, // 10 second initial delay
+      },
+      removeOnComplete: {
+        age: 86400,
+        count: 100,
+      },
+      removeOnFail: {
+        age: 604800,
+        count: 50,
+      },
+    },
+  }
 );
 
 /**
@@ -122,8 +161,56 @@ export async function addVideoImportJob(data: {
 /**
  * Add channel sync job
  */
-export async function addChannelSyncJob(data: { channelId: string }) {
+export async function addChannelSyncJob(data: {
+  channelId: string;
+  limit?: number;
+  filters?: {
+    minDuration?: number;
+    maxDuration?: number;
+    daysBack?: number;
+    minViews?: number;
+  };
+}) {
   return await channelSyncQueue.add('sync', data);
+}
+
+/**
+ * Add graph build job for a child
+ * Triggered after watch session completes
+ */
+export async function addGraphBuildJob(data: {
+  childId: string;
+  videoId: string;
+  watchSessionId: string;
+  fullRebuild?: boolean; // True for full rebuild, false for incremental update
+}) {
+  // Deduplicate jobs for same child within 5 seconds
+  // Prevents rapid-fire updates during quick video switches
+  const jobId = `graph-build:${data.childId}:${data.fullRebuild ? 'full' : 'incremental'}`;
+
+  return await graphBuilderQueue.add('build', data, {
+    jobId,
+    // If job with same ID exists and is waiting, skip this one
+    delay: 5000, // Wait 5 seconds before processing
+  });
+}
+
+/**
+ * Queue topic extraction for a video
+ * Called after video download completes
+ */
+export async function addTopicExtractionJob(data: TopicExtractionJobData): Promise<void> {
+  const job = await topicExtractionQueue.add('extract', data, {
+    jobId: `topic-extract:${data.videoId}`, // Dedupe - only one extraction per video
+    delay: 2000, // 2 second delay to let video metadata settle
+  });
+
+  logger.info({
+    message: 'Topic extraction job queued',
+    jobId: job.id,
+    videoId: data.videoId,
+    familyId: data.familyId,
+  });
 }
 
 /**
@@ -163,6 +250,8 @@ export const queues = {
   channelSync: channelSyncQueue,
   cleanup: cleanupQueue,
   reportGeneration: reportGenerationQueue,
+  graphBuilder: graphBuilderQueue,
+  topicExtraction: topicExtractionQueue,
 };
 
 export default queues;

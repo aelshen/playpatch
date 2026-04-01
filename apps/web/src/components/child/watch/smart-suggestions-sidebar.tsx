@@ -18,11 +18,19 @@ interface Video {
   } | null;
 }
 
+interface PastConversation {
+  id: string;
+  startedAt: Date;
+  lastMessage: string;
+}
+
 interface SmartSuggestionsSidebarProps {
   videoId: string;
   childProfileId: string;
   childName?: string;
   fallbackVideos: Video[];
+  pastConversations?: PastConversation[];
+  uiMode?: string;
   showChatToggle?: boolean;
   isChatExpanded?: boolean;
   onChatToggle?: () => void;
@@ -33,6 +41,8 @@ export function SmartSuggestionsSidebar({
   childProfileId,
   childName,
   fallbackVideos,
+  pastConversations = [],
+  uiMode = 'EXPLORER',
   showChatToggle = false,
   isChatExpanded: externalIsChatExpanded,
   onChatToggle: externalOnChatToggle,
@@ -44,7 +54,8 @@ export function SmartSuggestionsSidebar({
 
   // Use external state if provided, otherwise use internal state
   const isChatExpanded = externalIsChatExpanded ?? internalIsChatExpanded;
-  const onChatToggle = externalOnChatToggle ?? (() => setInternalIsChatExpanded(!internalIsChatExpanded));
+  const onChatToggle =
+    externalOnChatToggle ?? (() => setInternalIsChatExpanded(!internalIsChatExpanded));
 
   useEffect(() => {
     // Fetch smart recommendations on mount
@@ -62,7 +73,9 @@ export function SmartSuggestionsSidebar({
         }
 
         const data = await response.json();
-        setVideos(data.recommendations);
+        if (data.recommendations?.length > 0) {
+          setVideos(data.recommendations);
+        }
       } catch (err) {
         console.error('Error fetching recommendations:', err);
         setError('Failed to load recommendations');
@@ -85,6 +98,8 @@ export function SmartSuggestionsSidebar({
 
       <SuggestedVideosSidebar
         videos={videos}
+        pastConversations={pastConversations}
+        uiMode={uiMode}
         showChatToggle={showChatToggle}
         isChatExpanded={isChatExpanded}
         onChatToggle={onChatToggle}

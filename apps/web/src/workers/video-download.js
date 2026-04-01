@@ -8,7 +8,7 @@
 import { Worker } from 'bullmq';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { unlink, mkdir } from 'fs/promises';
+import { writeFile, unlink, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '@/lib/db/client';
@@ -19,46 +19,102 @@ const execAsync = promisify(exec);
 const DOWNLOAD_DIR = process.env.TEMP_DOWNLOAD_DIR || '/tmp/safestream/downloads';
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 /**
- * Download video using yt-dlp
+ * Download video using yt-dlp with fallback strategies
  */
 async function downloadVideo(url, outputPath, onProgress) {
     logger.info({ url, outputPath }, 'Starting video download');
-    // Create download directory if it doesn't exist
-    const dir = outputPath.substring(0, outputPath.lastIndexOf('/'));
-    if (!existsSync(dir)) {
-        await mkdir(dir, { recursive: true });
-    }
-    // Download with yt-dlp
-    // Format selection: best video+audio or best single file, max 1080p
-    const command = [
-        'yt-dlp',
-        '--format "bestvideo[height<=1080]+bestaudio/best[height<=1080]"',
-        '--merge-output-format mp4',
-        '--no-playlist',
-        `--output "${outputPath}"`,
-        '--progress',
-        '--newline',
-        `"${url}"`,
-    ].join(' ');
     try {
-        const { stdout } = await execAsync(command, {
-            maxBuffer: 50 * 1024 * 1024, // 50MB buffer for progress output
+        // Import enhanced download with fallback strategies
+        const { downloadVideoWithFallback, DownloadError } = await import('./video-download-enhanced');
+        // Check for cookies file (users can optionally provide YouTube cookies)
+        const cookiesPath = process.env.YOUTUBE_COOKIES_PATH || undefined;
+        const result = await downloadVideoWithFallback({
+            url,
+            outputPath,
+            cookiesPath,
+            onProgress,
         });
-        logger.info({ url, stdout }, 'Download completed');
-        // Get file info
-        const { stdout: statOutput } = await execAsync(`stat -f%z "${outputPath}"`);
-        const fileSize = parseInt(statOutput.trim());
+        if (result.fileSize > MAX_FILE_SIZE) {
+            throw new Error(`File size ${result.fileSize} bytes exceeds maximum allowed size of ${MAX_FILE_SIZE} bytes`);
+        }
+        logger.info({ url, fileSize: result.fileSize }, 'Download completed successfully');
+        return result;
+    }
+    catch (error) {
+        // If it's a DownloadError with user-friendly message, use that
+        if (error.name === 'DownloadError') {
+            const errorMsg = [
+                error.userFriendlyMessage,
+                '',
+                'Suggestions:',
+                ...error.suggestions.map((s) => `- ${s}`)
+            ].join('\n');
+            logger.error({ error, url, userMessage: errorMsg }, 'Download failed with user-friendly error');
+            throw new Error(errorMsg);
+        }
+        // Otherwise use generic error
+        logger.error({ error, url }, 'Download failed');
+        throw error;
+    }
+}
+/**
+ * Download video from RealDebrid HTTPS link
+ */
+async function downloadFromRealDebrid(videoId, magnetUri, fileId, outputPath, onProgress) {
+    logger.info({ videoId, fileId }, 'Starting RealDebrid download');
+    // Import RealDebrid functions
+    const { addMagnet, selectFiles, waitForDownload, getDownloadLinks, } = await import('@/lib/media/realdebrid');
+    try {
+        // Create download directory if it doesn't exist
+        const dir = outputPath.substring(0, outputPath.lastIndexOf('/'));
+        if (!existsSync(dir)) {
+            await mkdir(dir, { recursive: true });
+        }
+        // Add magnet to RealDebrid
+        const { id: torrentId } = await addMagnet(magnetUri);
+        logger.info({ videoId, torrentId }, 'Magnet added to RealDebrid');
+        if (onProgress)
+            onProgress(20);
+        // Select specific file
+        await selectFiles(torrentId, [fileId]);
+        logger.info({ videoId, torrentId, fileId }, 'Files selected');
+        if (onProgress)
+            onProgress(30);
+        // Wait for RealDebrid to download the torrent
+        await waitForDownload(torrentId);
+        logger.info({ videoId, torrentId }, 'RealDebrid download completed');
+        if (onProgress)
+            onProgress(60);
+        // Get HTTPS download links
+        const links = await getDownloadLinks(torrentId);
+        const targetLink = links.find(l => l.filename.includes(fileId.toString())) || links[0];
+        if (!targetLink) {
+            throw new Error('No download link found for file');
+        }
+        logger.info({ videoId, filename: targetLink.filename }, 'Got download link');
+        // Download file via HTTPS
+        const response = await fetch(targetLink.link);
+        if (!response.ok) {
+            throw new Error(`Failed to download: ${response.statusText}`);
+        }
+        const fileSize = targetLink.size;
         if (fileSize > MAX_FILE_SIZE) {
             throw new Error(`File size ${fileSize} bytes exceeds maximum allowed size of ${MAX_FILE_SIZE} bytes`);
         }
+        // Save to disk
+        const buffer = await response.arrayBuffer();
+        await writeFile(outputPath, Buffer.from(buffer));
+        logger.info({ videoId, fileSize }, 'RealDebrid download completed');
+        // Determine format from filename
+        const format = targetLink.filename.split('.').pop() || 'mp4';
         return {
             filePath: outputPath,
             fileSize,
-            format: 'mp4',
+            format: format === 'mkv' ? 'mkv' : 'mp4', // Support mkv
         };
     }
     catch (error) {
-        logger.error({ error, url }, 'Download failed');
+        logger.error({ error, videoId }, 'RealDebrid download failed');
         throw error;
     }
 }
@@ -119,9 +175,30 @@ async function processVideoDownload(job) {
             }
         }
         await job.updateProgress(20);
-        // Download video
+        // Download video based on source type
         const outputPath = join(DOWNLOAD_DIR, `${videoId}.mp4`);
-        const { filePath, fileSize, format } = await downloadVideo(sourceUrl, outputPath);
+        let filePath;
+        let fileSize;
+        let format;
+        if (sourceType === 'REALDEBRID') {
+            // Extract torrent hash and file ID from sourceId (format: hash:fileId)
+            const metadata = video.metadata;
+            const fileId = metadata?.fileId;
+            if (!fileId) {
+                throw new Error('Missing file ID in video metadata');
+            }
+            const result = await downloadFromRealDebrid(videoId, sourceUrl, fileId, outputPath, (progress) => job.updateProgress(20 + (progress * 0.4)));
+            filePath = result.filePath;
+            fileSize = result.fileSize;
+            format = result.format;
+        }
+        else {
+            // YouTube, Vimeo, etc. - use yt-dlp
+            const result = await downloadVideo(sourceUrl, outputPath);
+            filePath = result.filePath;
+            fileSize = result.fileSize;
+            format = result.format;
+        }
         await job.updateProgress(60);
         // Upload to storage
         logger.info({ videoId, fileSize }, 'Uploading video to storage');

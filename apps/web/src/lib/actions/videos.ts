@@ -184,8 +184,14 @@ export async function approveVideoAction(
     // Approve the video
     await approveVideo(videoId, familyId, user.id, data);
 
-    // If video hasn't been downloaded yet, queue the download
-    if (!video.localPath) {
+    // YouTube videos are immediately watchable via embed — no download needed
+    if (video.sourceType === 'YOUTUBE') {
+      await prisma.video.update({
+        where: { id: videoId },
+        data: { playbackMode: 'EMBED', status: 'READY' },
+      });
+    } else if (!video.localPath) {
+      // Non-YouTube sources (RealDebrid, uploads) need a download
       const { videoDownloadQueue } = await import('@/lib/queue/client');
 
       await videoDownloadQueue.add('download-video', {

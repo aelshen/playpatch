@@ -9,6 +9,7 @@ import { filterInput, filterOutput, sanitizeText } from '@playpatch/ai-safety';
 import { buildSystemPrompt } from '@playpatch/ai-safety';
 import { prisma } from '../db/client';
 import { logger } from '../logger';
+import { AIErrors, DatabaseErrors } from '../errors/messages';
 
 const AI_PROVIDER = process.env.AI_PROVIDER || 'ollama';
 
@@ -56,7 +57,7 @@ export async function createConversation({
     return conversation.id;
   } catch (error) {
     logger.error({ error, childId, videoId }, 'Failed to create AI conversation');
-    throw new Error('Failed to create conversation');
+    throw AIErrors.CONVERSATION_CREATE_FAILED(error);
   }
 }
 
@@ -192,7 +193,7 @@ export async function sendAIChatMessage({
     });
 
     if (!video) {
-      throw new Error('Video not found');
+      throw DatabaseErrors.RECORD_NOT_FOUND('Video', videoId);
     }
 
     // Build system prompt
@@ -283,9 +284,12 @@ export async function sendAIChatMessage({
       'Failed to process AI chat message'
     );
 
-    throw new Error(
-      error instanceof Error ? error.message : 'Failed to process message'
-    );
+    // Preserve ActionableError if it's already thrown
+    if (error instanceof Error && 'code' in error) {
+      throw error;
+    }
+
+    throw AIErrors.MESSAGE_SEND_FAILED(error);
   }
 }
 
@@ -322,7 +326,7 @@ export async function getConversation(conversationId: string) {
     return conversation;
   } catch (error) {
     logger.error({ error, conversationId }, 'Failed to get conversation');
-    throw new Error('Failed to get conversation');
+    throw DatabaseErrors.QUERY_FAILED('get conversation', error);
   }
 }
 
@@ -368,7 +372,7 @@ export async function deleteConversation(conversationId: string): Promise<void> 
     logger.info({ conversationId }, 'Deleted AI conversation');
   } catch (error) {
     logger.error({ error, conversationId }, 'Failed to delete conversation');
-    throw new Error('Failed to delete conversation');
+    throw DatabaseErrors.QUERY_FAILED('delete conversation', error);
   }
 }
 

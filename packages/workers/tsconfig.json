@@ -5,8 +5,11 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "composite": true
+    "composite": true,
+    "paths": {
+      "@/*": ["../../apps/web/src/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../../apps/web/src/workers/**/*"],
   "exclude": ["node_modules", "dist"]
 }

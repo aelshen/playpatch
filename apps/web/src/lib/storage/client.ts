@@ -11,12 +11,21 @@ const STORAGE_TYPE = process.env.STORAGE_TYPE || 'local'; // 'local' or 'minio'
 
 // Initialize the storage backend
 let storageBackend: StorageBackend;
+let storageInitialized = false;
 
 if (STORAGE_TYPE === 'local') {
   storageBackend = new LocalStorageBackend();
 } else {
   // MinIO backend - dynamically import to avoid errors when not using it
   throw new Error('MinIO backend not yet migrated - use STORAGE_TYPE=local');
+}
+
+// Auto-initialize storage on first use
+async function ensureInitialized() {
+  if (!storageInitialized) {
+    await storageBackend.initialize();
+    storageInitialized = true;
+  }
 }
 
 export { BUCKETS };
@@ -37,6 +46,7 @@ export async function uploadFile(
   filePath: string,
   metadata?: Record<string, string>
 ): Promise<void> {
+  await ensureInitialized();
   await storageBackend.uploadFile(bucket, objectName, filePath, metadata);
 }
 
@@ -49,6 +59,7 @@ export async function uploadBuffer(
   buffer: Buffer,
   metadata?: Record<string, string>
 ): Promise<void> {
+  await ensureInitialized();
   await storageBackend.uploadBuffer(bucket, objectName, buffer, metadata);
 }
 

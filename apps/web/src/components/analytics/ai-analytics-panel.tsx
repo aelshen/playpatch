@@ -8,6 +8,8 @@
 import { useEffect, useState } from 'react';
 import { MessageSquare, Shield, Zap, TrendingUp } from 'lucide-react';
 import { BarChart } from '@/components/charts';
+import { ConversationsOverTimeChart } from './conversations-over-time-chart';
+import { SafetyTrendsChart } from './safety-trends-chart';
 
 interface AIStats {
   totalConversations: number;
@@ -305,6 +307,20 @@ export function AIAnalyticsPanel({
           />
         </div>
       )}
+
+      {/* Time-Based Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ConversationsOverTimeChart
+          profileId={profileId}
+          startDate={startDate}
+          endDate={endDate}
+        />
+        <SafetyTrendsChart
+          profileId={profileId}
+          startDate={startDate}
+          endDate={endDate}
+        />
+      </div>
     </div>
   );
 }

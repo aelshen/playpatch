@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { prisma } from '@/lib/db/client';
 import { getCurrentChildProfile } from '@/lib/auth/session';
 import { TrackedVideoPlayer } from '@/components/player/tracked-video-player';
+import { SafeYouTubePlayer } from '@/components/player/safe-youtube-player';
 import { ageRatingToNumber, getAllowedAgeRatings } from '@/lib/utils/age-rating';
 import { VideoViewerLayout } from '@/components/child/watch/video-viewer-layout';
 import { VideoInfoSection } from '@/components/child/watch/video-info-section';
@@ -43,8 +44,12 @@ export default async function WatchPage({ params }: WatchPageProps) {
     notFound();
   }
 
-  // Check if video is ready
-  if (video.status !== 'READY') {
+  // Check if video is watchable — either via embed or HLS
+  const isWatchable =
+    video.approvalStatus === 'APPROVED' &&
+    (video.playbackMode === 'EMBED' || video.playbackMode === 'HLS');
+
+  if (!isWatchable) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-8 text-white">
         <div className="text-center">
@@ -52,13 +57,13 @@ export default async function WatchPage({ params }: WatchPageProps) {
           <p className="mb-6 text-gray-400">
             {video.approvalStatus === 'PENDING'
               ? 'This video is awaiting approval.'
-              : video.status === 'DOWNLOADING'
-              ? 'This video is being downloaded.'
-              : video.status === 'PROCESSING'
-              ? 'This video is being processed.'
-              : video.status === 'ERROR'
-              ? 'There was an error preparing this video.'
-              : 'This video is not available yet.'}
+              : video.approvalStatus === 'REJECTED'
+                ? 'This video is not available.'
+                : video.status === 'DOWNLOADING'
+                  ? 'This video is being downloaded.'
+                  : video.status === 'PROCESSING'
+                    ? 'This video is being processed.'
+                    : 'This video is not available yet.'}
           </p>
           <Link
             href={`/child/${childProfile.uiMode.toLowerCase()}`}
@@ -126,8 +131,8 @@ export default async function WatchPage({ params }: WatchPageProps) {
   const relatedVideos = await prisma.video.findMany({
     where: {
       id: { not: videoId },
-      status: 'READY',
       approvalStatus: 'APPROVED',
+      playbackMode: { in: ['EMBED', 'HLS'] },
       ageRating: { in: allowedRatings },
       channelId: video.channelId,
     },
@@ -138,6 +143,30 @@ export default async function WatchPage({ params }: WatchPageProps) {
     orderBy: {
       createdAt: 'desc',
     },
+  });
+
+  // Get past conversations for this video
+  const pastConversations = await prisma.aIConversation.findMany({
+    where: {
+      childId: childProfile.id,
+      videoId: video.id,
+    },
+    include: {
+      messages: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1,
+        select: {
+          content: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: {
+      startedAt: 'desc',
+    },
+    take: 3,
   });
 
   // Get view count for this video
@@ -176,16 +205,24 @@ export default async function WatchPage({ params }: WatchPageProps) {
         </Link>
       }
       videoPlayer={
-        <TrackedVideoPlayer
-          video={{
-            id: video.id,
-            title: video.title,
-            familyId: video.familyId,
-            thumbnailPath: video.thumbnailPath,
-          }}
-          resumePosition={resumePosition}
-          className="h-full w-full"
-        />
+        video.playbackMode === 'HLS' ? (
+          <TrackedVideoPlayer
+            video={{
+              id: video.id,
+              title: video.title,
+              familyId: video.familyId,
+              thumbnailPath: video.thumbnailPath,
+            }}
+            resumePosition={resumePosition}
+            className="h-full w-full"
+          />
+        ) : (
+          <SafeYouTubePlayer
+            videoId={video.sourceId!}
+            title={video.title}
+            className="h-full w-full"
+          />
+        )
       }
       actionBar={
         <VideoActionsWrapper
@@ -215,6 +252,12 @@ export default async function WatchPage({ params }: WatchPageProps) {
             duration: v.duration,
             channel: v.channel,
           }))}
+          pastConversations={pastConversations.map((conv) => ({
+            id: conv.id,
+            startedAt: conv.startedAt,
+            lastMessage: conv.messages[0]?.content || 'Tap to view chat',
+          }))}
+          uiMode={childProfile.uiMode}
           showChatToggle={true}
         />
       }

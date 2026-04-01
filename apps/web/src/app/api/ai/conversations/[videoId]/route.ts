@@ -14,14 +14,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { videoId: string } }
 ) {
+  const { videoId } = params;
+
   try {
     // Verify user is authenticated
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const { videoId } = params;
     const searchParams = request.nextUrl.searchParams;
     const childProfileId = searchParams.get('childProfileId');
 

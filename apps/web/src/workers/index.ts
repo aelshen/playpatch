@@ -5,6 +5,9 @@
 
 import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
+import { createChannelScanWorker } from './channel-scan';
+import { graphBuilderWorker } from './graph-builder';
+import { topicExtractionWorker } from './topic-extraction';
 import { logger } from '@/lib/logger';
 import { initializeStorage } from '@/lib/storage/client';
 
@@ -25,6 +28,16 @@ async function main() {
     const transcodeWorker = createVideoTranscodeWorker();
     logger.info('✓ Video transcode worker started');
 
+    // Start channel scan worker
+    const channelScanWorker = createChannelScanWorker();
+    logger.info('✓ Channel scan worker started');
+
+    // Graph builder worker (already started on import)
+    logger.info('✓ Graph builder worker started');
+
+    // Topic extraction worker (already started on import)
+    logger.info('✓ Topic extraction worker started');
+
     logger.info('All workers initialized and ready');
 
     // Graceful shutdown
@@ -32,13 +45,15 @@ async function main() {
       logger.info('Shutting down workers...');
       await downloadWorker.close();
       await transcodeWorker.close();
+      await channelScanWorker.close();
+      await graphBuilderWorker.close();
+      await topicExtractionWorker.close();
       logger.info('Workers stopped');
       process.exit(0);
     };
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
-
   } catch (error) {
     logger.error(error, 'Failed to initialize workers');
     process.exit(1);

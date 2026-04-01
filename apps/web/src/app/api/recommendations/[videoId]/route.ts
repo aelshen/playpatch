@@ -88,7 +88,7 @@ export async function GET(
           ? {
               id: video.channel.id,
               name: video.channel.name,
-              thumbnailPath: video.channel.thumbnailPath,
+              thumbnailPath: video.channel.thumbnailUrl,
             }
           : null,
       })),

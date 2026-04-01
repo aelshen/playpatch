@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendAIChatMessage, isAIAvailable } from '@/lib/ai';
-import { getCurrentUser } from '@/lib/auth/session';
+import { getCurrentChildProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
 
@@ -20,9 +20,9 @@ const chatMessageSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify user is authenticated
-    const user = await getCurrentUser();
-    if (!user) {
+    // Verify child session
+    const sessionProfile = await getCurrentChildProfile();
+    if (!sessionProfile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -30,9 +30,7 @@ export async function POST(request: NextRequest) {
     const aiAvailable = await isAIAvailable();
     if (!aiAvailable) {
       return NextResponse.json(
-        {
-          error: 'AI chat is currently unavailable. Please try again later.',
-        },
+        { error: 'AI chat is currently unavailable. Please try again later.' },
         { status: 503 }
       );
     }
@@ -43,65 +41,33 @@ export async function POST(request: NextRequest) {
 
     if (!validatedData.success) {
       return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: validatedData.error.errors,
-        },
+        { error: 'Invalid request', details: validatedData.error.errors },
         { status: 400 }
       );
     }
 
     const { conversationId, videoId, childProfileId, message } = validatedData.data;
 
-    // Verify child profile exists and belongs to user's family
-    const childProfile = await prisma.childProfile.findUnique({
-      where: { id: childProfileId },
-      select: {
-        id: true,
-        name: true,
-        ageRating: true,
-        user: {
-          select: {
-            familyId: true,
-            family: {
-              select: {
-                users: {
-                  where: { id: user.id },
-                  select: { id: true },
-                },
-                settings: {
-                  select: {
-                    allowAI: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+    // Ensure the session matches the requested child profile
+    if (sessionProfile.id !== childProfileId) {
+      return NextResponse.json({ error: 'Unauthorized access to child profile' }, { status: 403 });
+    }
+
+    // Fetch family AI settings via the child's user
+    const childUser = await prisma.user.findUnique({
+      where: { id: sessionProfile.userId },
+      select: { family: { select: { settings: { select: { allowAI: true } } } } },
     });
+    const familySettings = childUser?.family?.settings;
 
-    if (!childProfile) {
-      return NextResponse.json(
-        { error: 'Child profile not found' },
-        { status: 404 }
-      );
-    }
-
-    if (childProfile.user.family.users.length === 0) {
-      return NextResponse.json(
-        { error: 'Unauthorized access to child profile' },
-        { status: 403 }
-      );
-    }
-
-    // Check if child has AI chat enabled
-    if (!childProfile.user.family.settings?.allowAI) {
+    if (!familySettings?.allowAI) {
       return NextResponse.json(
         { error: 'AI chat is not enabled for this family' },
         { status: 403 }
       );
     }
+
+    const childProfile = sessionProfile;
 
     // Verify video exists and is approved
     const video = await prisma.video.findUnique({
@@ -119,10 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (video.status !== 'READY' || video.approvalStatus !== 'APPROVED') {
-      return NextResponse.json(
-        { error: 'Video is not available for chat' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Video is not available for chat' }, { status: 400 });
     }
 
     // Calculate child age from age rating (approximate)

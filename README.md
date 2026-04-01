@@ -13,43 +13,142 @@ A self-hosted, parent-controlled video streaming platform designed to provide ch
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: One-Click Installer ⭐ Easiest
 
-- **Node.js** 20+
-- **pnpm** 8+
-- **Docker** & **Docker Compose**
-- **Git**
-
-### Automated Setup (Recommended)
+Install PlayPatch with a single command:
 
 ```bash
-# Clone and navigate
+curl -fsSL https://raw.githubusercontent.com/yourusername/playpatch/main/install.sh | bash
+```
+
+Or download and run:
+
+```bash
+wget https://raw.githubusercontent.com/yourusername/playpatch/main/install.sh
+bash install.sh
+```
+
+**What the installer does:**
+- ✓ Checks prerequisites (Node.js, pnpm, Docker)
+- ✓ Clones the repository
+- ✓ Installs dependencies
+- ✓ Generates environment configuration
+- ✓ Starts all services
+
+**Time:** ~5 minutes | **Requirements:** Node.js 20+, pnpm, Docker Desktop
+
+### Option 2: Manual Setup
+
+#### Prerequisites
+
+- **Node.js** 20+ ([Download](https://nodejs.org/))
+- **pnpm** 8+ (`npm install -g pnpm`)
+- **Docker Desktop** ([Download](https://www.docker.com/get-started))
+- **Git**
+
+#### Installation Steps
+
+```bash
+# Clone the repository
 git clone https://github.com/yourusername/playpatch.git
 cd playpatch
 
-# Run complete setup (checks prerequisites, installs deps, sets up services)
-pnpm setup
+# Install dependencies
+pnpm install
 
-# Start development environment (starts all services + web app + workers)
+# Start everything (this does it all!)
 pnpm dev:all
 ```
 
-Open http://localhost:3000 and login with demo account:
-- **Email:** demo@example.com
-- **Password:** password123
+**What `pnpm dev:all` does:**
+1. ✓ Starts Docker services (PostgreSQL, Redis, MinIO, Meilisearch, Ollama)
+2. ✓ Waits for services to be ready
+3. ✓ Creates storage directories
+4. ✓ Runs database migrations
+5. ✓ Seeds demo data (if database is empty)
+6. ✓ Starts background workers
+7. ✓ Starts web application
 
-### Manual Setup
+**First-time setup takes:** ~2-3 minutes
+**Subsequent starts take:** ~30 seconds
 
-If you prefer step-by-step control, see the [Complete Setup Guide](./SETUP_GUIDE.md).
+### Access the Application
 
-### Verify Installation
+Once started, open http://localhost:3000 and login with:
+- **Email:** `demo@example.com`
+- **Password:** `password123`
+
+### Available Services
+
+After running `pnpm dev:all`, these services are available:
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| **Web App** | http://localhost:3000 | Main application |
+| **Prisma Studio** | Run `pnpm db:studio` | Database GUI |
+| **MinIO Console** | http://localhost:9001 | Storage management |
+| **Meilisearch** | http://localhost:7700 | Search engine |
+| **PostgreSQL** | localhost:5433 | Database |
+| **Redis** | localhost:6379 | Cache & queues |
+
+**Worker Logs:** `tail -f .workers.log`
+
+### Stop Everything
 
 ```bash
-# Check all services are healthy
-pnpm health:check
+# Stop all services gracefully
+pnpm dev:stop
+```
 
-# View detailed health status
-pnpm health:api
+This stops:
+- Web application
+- Background workers
+- Docker services (data is preserved)
+
+### Troubleshooting Quick Start
+
+**Problem: Docker not running**
+```bash
+# Start Docker Desktop first, then:
+pnpm dev:all
+```
+
+**Problem: Port 3000 already in use**
+```bash
+# Kill the process using port 3000
+lsof -ti:3000 | xargs kill -9
+pnpm dev:all
+```
+
+**Problem: Database connection failed**
+```bash
+# Reset and restart
+pnpm docker:clean
+pnpm dev:all
+```
+
+For more issues, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+### Uninstalling
+
+If you installed using the one-click installer:
+
+```bash
+bash ~/playpatch/uninstall.sh
+```
+
+Or manually:
+
+```bash
+# Stop all services
+pnpm dev:stop
+
+# Remove Docker containers and volumes
+pnpm docker:clean
+
+# Remove the project directory
+cd ..
+rm -rf playpatch
 ```
 
 ## 📁 Project Structure
@@ -72,48 +171,67 @@ playpatch/
 
 ## 🛠️ Development
 
+### Daily Workflow
+
+```bash
+# Start development (once per day)
+pnpm dev:all
+
+# The application will open at http://localhost:3000
+# Workers run automatically in the background
+# Press Ctrl+C to stop the web app (workers keep running)
+
+# Stop everything when done
+pnpm dev:stop
+```
+
 ### Common Commands
 
-**Daily Development:**
+**Starting & Stopping:**
 ```bash
-pnpm dev:all         # Start everything (recommended)
-pnpm dev             # Just web app
+pnpm dev:all         # Start everything (web + workers + docker)
+pnpm dev:stop        # Stop everything gracefully
+pnpm dev             # Just web app (no workers)
 pnpm workers:dev     # Just background workers
 ```
+
+**Database Management:**
+```bash
+pnpm db:studio       # Open Prisma Studio (GUI database viewer)
+pnpm db:migrate      # Run new migrations
+pnpm db:seed         # Seed demo data
+pnpm db:reset        # Reset database (⚠️ deletes all data!)
+```
+
+**Docker Services:**
+```bash
+pnpm docker:dev      # Start Docker services only
+pnpm docker:stop     # Stop Docker services
+pnpm docker:restart  # Restart services
+pnpm docker:status   # Check service status
+pnpm docker:logs     # View all service logs
+pnpm docker:clean    # Remove all volumes (⚠️ deletes data!)
+```
+
+**Monitoring & Debugging:**
+```bash
+pnpm health:check    # Comprehensive health check (run before starting)
+pnpm health:api      # API health status (requires app running)
+pnpm docker:status   # Check Docker container status
+pnpm docker:logs     # View Docker service logs
+tail -f .workers.log # View worker logs in real-time
+```
+
+💡 **Tip**: Run `pnpm health:check` before starting development to catch issues early!
 
 **Testing:**
 ```bash
 pnpm test            # Run all tests
 pnpm test:watch      # Watch mode for TDD
-pnpm test:coverage   # Generate coverage report
+pnpm test:e2e        # End-to-end tests
 ```
 
-**Database:**
-```bash
-pnpm db:studio       # Open Prisma Studio GUI
-pnpm db:migrate      # Run migrations
-pnpm db:seed         # Seed demo data
-pnpm db:reset        # Reset database (caution!)
-```
-
-**Docker Services:**
-```bash
-pnpm docker:dev      # Start all services
-pnpm docker:stop     # Stop services
-pnpm docker:restart  # Restart services
-pnpm docker:status   # Check service status
-pnpm docker:logs     # View all logs
-```
-
-**Health & Maintenance:**
-```bash
-pnpm health:check    # Verify all services
-pnpm health:api      # API health status
-pnpm status          # System status overview
-pnpm clean:all       # Clean everything
-```
-
-See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete command reference.
+Run `pnpm run` to see all available commands.
 
 ### Tech Stack
 
@@ -124,25 +242,27 @@ See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for complete command reference.
 - **Storage**: MinIO (S3-compatible)
 - **Search**: Meilisearch
 - **AI**: Ollama (local) or OpenAI
+- **Monitoring**: Sentry (optional, for error tracking)
 - **Infrastructure**: Docker, Traefik
 
 ## 📚 Documentation
 
 **Getting Started:**
-- [Complete Setup Guide](./SETUP_GUIDE.md) - Step-by-step installation
-- [Testing Guide](./TESTING_GUIDE.md) - How to write and run tests
+- [Complete Getting Started Guide](./GETTING_STARTED.md) - Detailed setup and architecture
 - [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
-
-**Development:**
-- [Code Review Report](./CODE_REVIEW_REPORT.md) - Code quality analysis
-- [Testing Setup Summary](./TESTING_SETUP_SUMMARY.md) - Quick testing reference
-- [Session Summary](./SESSION_SUMMARY.md) - Recent improvements log
+- [Contributing Guide](./CONTRIBUTING.md) - How to contribute
 
 **Project Documentation:**
-- [Product Requirements (PRD)](./docs/PRD.md)
-- [Technical Design](./docs/TECHNICAL_DESIGN.md)
-- [Development Checklist](./docs/DEVELOPMENT_CHECKLIST.md)
-- [Environment Variables](./ENVIRONMENT_VARIABLES.md)
+- [Product Requirements](./PRD.md) - Feature requirements
+- [RealDebrid Integration](./docs/REALDEBRID_INTEGRATION.md) - RealDebrid setup and usage
+- [YouTube Import Setup](./docs/YOUTUBE_IMPORT_SETUP.md) - Configure YouTube imports
+- [Analytics Revamp](./docs/analytics-revamp-prd.md) - Analytics features
+
+**Architecture:**
+- [Stack Overview](./.planning/codebase/STACK.md) - Technology stack
+- [Architecture](./.planning/codebase/ARCHITECTURE.md) - System architecture
+- [Structure](./.planning/codebase/STRUCTURE.md) - Codebase organization
+- [Conventions](./.planning/codebase/CONVENTIONS.md) - Coding standards
 
 ## 🔒 Security
 

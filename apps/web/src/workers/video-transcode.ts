@@ -8,7 +8,7 @@
 import { Worker, Job } from 'bullmq';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFile, unlink, mkdir, readdir } from 'fs/promises';
+import { writeFile, mkdir, readdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { prisma } from '@/lib/db/client';
@@ -40,7 +40,7 @@ async function transcodeToHLS(
   inputPath: string,
   outputDir: string,
   videoId: string,
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<{ playlistPath: string; segmentPaths: string[] }> {
   logger.info({ inputPath, outputDir, videoId }, 'Starting HLS transcoding');
 
@@ -53,7 +53,7 @@ async function transcodeToHLS(
   const { stdout: durationOutput } = await execAsync(
     `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputPath}"`
   );
-  const duration = parseFloat(durationOutput.trim());
+  const _duration = parseFloat(durationOutput.trim());
 
   // Build FFmpeg command for adaptive HLS
   const variantPlaylists: string[] = [];
@@ -99,9 +99,9 @@ async function transcodeToHLS(
     const masterPlaylist = [
       '#EXTM3U',
       '#EXT-X-VERSION:3',
-      ...HLS_PROFILES.map((profile, index) => {
+      ...HLS_PROFILES.map((profile, _index) => {
         return [
-          `#EXT-X-STREAM-INF:BANDWIDTH=${parseInt(profile.bitrate) * 1000},RESOLUTION=${Math.round(profile.height * 16/9)}x${profile.height}`,
+          `#EXT-X-STREAM-INF:BANDWIDTH=${parseInt(profile.bitrate) * 1000},RESOLUTION=${Math.round((profile.height * 16) / 9)}x${profile.height}`,
           `${profile.name}.m3u8`,
         ].join('\n');
       }),
@@ -112,7 +112,7 @@ async function transcodeToHLS(
 
     // Get all generated files
     const files = await readdir(outputDir);
-    const segmentPaths = files.filter(f => f.endsWith('.ts') || f.endsWith('.m3u8'));
+    const segmentPaths = files.filter((f) => f.endsWith('.ts') || f.endsWith('.m3u8'));
 
     logger.info({ videoId, segmentCount: segmentPaths.length }, 'HLS transcoding completed');
 
@@ -201,7 +201,7 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
 
     // Transcode to HLS
     const hlsDir = join(workDir, 'hls');
-    const { playlistPath, segmentPaths } = await transcodeToHLS(
+    const { playlistPath: _playlistPath, segmentPaths } = await transcodeToHLS(
       inputPath,
       hlsDir,
       videoId
@@ -216,19 +216,17 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
 
     for (const segmentFile of segmentPaths) {
       const segmentPath = join(hlsDir, segmentFile);
-      const fs = require('fs');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const fs = require('fs') as typeof import('fs');
       const segmentBuffer = fs.readFileSync(segmentPath);
 
       const contentType = segmentFile.endsWith('.m3u8')
         ? 'application/vnd.apple.mpegurl'
         : 'video/mp2t';
 
-      await uploadBuffer(
-        BUCKETS.VIDEOS,
-        `${hlsBaseKey}/${segmentFile}`,
-        segmentBuffer,
-        { 'Content-Type': contentType }
-      );
+      await uploadBuffer(BUCKETS.VIDEOS, `${hlsBaseKey}/${segmentFile}`, segmentBuffer, {
+        'Content-Type': contentType,
+      });
     }
 
     await job.updateProgress(85);
@@ -238,7 +236,8 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
     if (thumbs.length > 0) {
       for (const thumbFile of thumbs) {
         const thumbPath = join(workDir, thumbFile);
-        const fs = require('fs');
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const fs = require('fs') as typeof import('fs');
         const thumbBuffer = fs.readFileSync(thumbPath);
 
         await uploadBuffer(
@@ -252,19 +251,25 @@ async function processVideoTranscode(job: Job<VideoTranscodeJobData>) {
 
     await job.updateProgress(95);
 
-    // Update video record
+    // Update video record with HLS path and thumbnail path
+    const thumbnailPath =
+      thumbs.length > 0 ? `${familyId}/${videoId}/thumbnails/thumb_0.jpg` : undefined;
+
     await prisma.video.update({
       where: { id: videoId },
       data: {
         status: 'READY',
+        playbackMode: 'HLS',
         hlsPath: `${hlsBaseKey}/master.m3u8`,
+        thumbnailPath: thumbnailPath,
         isTranscoded: true,
       },
     });
 
     // Clean up work directory
     try {
-      const { execSync } = require('child_process');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { execSync } = require('child_process') as typeof import('child_process');
       execSync(`rm -rf "${workDir}"`);
       logger.info({ workDir }, 'Cleaned up work directory');
     } catch (error) {

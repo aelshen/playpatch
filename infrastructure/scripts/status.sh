@@ -92,9 +92,9 @@ echo ""
 
 # Check if dev server is running
 echo "🌐 Web Application:"
-if curl -s http://localhost:3000 > /dev/null 2>&1; then
+if curl -s http://localhost:3030 > /dev/null 2>&1; then
     echo "   ✅ Next.js Dev Server: Running"
-    echo "   🌐 URL: http://localhost:3000"
+    echo "   🌐 URL: http://localhost:3030"
 else
     echo "   ⚠️  Next.js Dev Server: Not running"
     echo "   💡 Start with: pnpm dev"

@@ -8,6 +8,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '@/lib/logger';
+import { VideoErrors } from '../errors/messages';
 
 const execAsync = promisify(exec);
 
@@ -123,23 +124,23 @@ export async function getYouTubeVideoInfo(url: string): Promise<YouTubeVideoInfo
 
     // Check if yt-dlp is installed
     if (error instanceof Error && error.message.includes('command not found')) {
-      throw new Error('yt-dlp is not installed. Please install it first: pip install yt-dlp');
+      throw VideoErrors.YTDLP_NOT_INSTALLED();
     }
 
     // Check for common errors
     if (error instanceof Error) {
       if (error.message.includes('Private video')) {
-        throw new Error('This video is private and cannot be imported');
+        throw VideoErrors.VIDEO_PRIVATE(url);
       }
       if (error.message.includes('Video unavailable')) {
-        throw new Error('This video is unavailable or has been removed');
+        throw VideoErrors.VIDEO_UNAVAILABLE(url);
       }
       if (error.message.includes('Sign in to confirm your age')) {
-        throw new Error('This video requires age verification');
+        throw VideoErrors.VIDEO_UNAVAILABLE(url);
       }
     }
 
-    throw new Error('Failed to extract video information. Please check the URL and try again.');
+    throw VideoErrors.IMPORT_FAILED('YouTube', error);
   }
 }
 
