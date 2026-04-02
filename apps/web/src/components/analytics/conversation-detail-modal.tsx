@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { X, Download, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 interface Message {
   id: string;
@@ -31,6 +32,7 @@ interface ConversationDetail {
   childName: string;
   startedAt: string;
   topics: string[];
+  childAgeRating?: string;
   hasFlags: boolean;
   flags: SafetyFlag[] | null;
   messages: Message[];
@@ -161,15 +163,22 @@ export function ConversationDetailModal({
                     <div className="mt-4">
                       <p className="text-sm font-medium text-gray-500 mb-2">Topics</p>
                       <div className="flex flex-wrap gap-2">
-                        {conversation.topics.map((topic) => (
-                          <span
-                            key={topic}
-                            className="inline-flex rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700"
-                          >
-                            {topic}
-                          </span>
-                        ))}
+                        {conversation.topics.map((topic) => {
+                          const searchUrl = `/admin/content/import?source=search&q=${encodeURIComponent(topic)}${conversation.childAgeRating ? `&ageRating=${conversation.childAgeRating}` : ''}`;
+                          return (
+                            <Link
+                              key={topic}
+                              href={searchUrl}
+                              title={`Find videos about "${topic}"`}
+                              className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 transition-colors"
+                            >
+                              {topic}
+                              <span className="text-blue-400">→</span>
+                            </Link>
+                          );
+                        })}
                       </div>
+                      <p className="mt-1 text-xs text-gray-400">Click any topic to find videos on YouTube</p>
                     </div>
                   )}
 

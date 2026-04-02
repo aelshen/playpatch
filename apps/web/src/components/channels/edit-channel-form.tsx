@@ -168,11 +168,10 @@ export function EditChannelForm({ channel }: EditChannelFormProps) {
               className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
             >
               <option value="">Suggest based on content</option>
-              <option value="EVERYONE">Everyone</option>
-              <option value="AGES_7_PLUS">Ages 7+</option>
-              <option value="AGES_12_PLUS">Ages 12+</option>
-              <option value="AGES_16_PLUS">Ages 16+</option>
-              <option value="MATURE">Mature</option>
+              <option value="AGE_2_PLUS">Ages 2+</option>
+              <option value="AGE_4_PLUS">Ages 4+</option>
+              <option value="AGE_7_PLUS">Ages 7+</option>
+              <option value="AGE_10_PLUS">Ages 10+</option>
             </select>
             <p className="mt-1 text-sm text-gray-500">
               Automatically apply this age rating to all videos from this channel

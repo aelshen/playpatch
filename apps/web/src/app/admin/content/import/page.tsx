@@ -10,11 +10,13 @@ import { ImportTabs } from '@/components/admin/import-tabs';
 export default async function ImportVideoPage({
   searchParams,
 }: {
-  searchParams: { source?: string };
+  searchParams: { source?: string; q?: string; ageRating?: string };
 }) {
   await getCurrentUser();
 
-  const source = searchParams.source || 'youtube';
+  const source = searchParams.source || (searchParams.q ? 'search' : 'youtube');
+  const prefilledQuery = searchParams.q;
+  const ageRating = searchParams.ageRating;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,7 +40,7 @@ export default async function ImportVideoPage({
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <ImportTabs defaultSource={source} />
+        <ImportTabs defaultSource={source} prefilledQuery={prefilledQuery} ageRating={ageRating} />
       </main>
     </div>
   );

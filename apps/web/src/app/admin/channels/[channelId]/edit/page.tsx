@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import { EditChannelForm } from '@/components/channels/edit-channel-form';
+import { RelatedChannelsPanel } from '@/components/channels/related-channels-panel';
 
 interface PageProps {
   params: {
@@ -73,6 +74,16 @@ export default async function EditChannelPage({ params }: PageProps) {
 
         {/* Edit Form */}
         <EditChannelForm channel={channel} />
+
+        {/* Related Channels */}
+        {channel.autoCategories && channel.autoCategories.length > 0 && (
+          <div className="mt-8">
+            <RelatedChannelsPanel
+              channelName={channel.name}
+              channelCategories={channel.autoCategories}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

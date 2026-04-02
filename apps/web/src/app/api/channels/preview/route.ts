@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
     // Fetch channel info
     const channelInfo = await getYouTubeChannelInfo(channelUrl);
 
-    // Fetch sample of recent videos (limit to 5 for preview)
-    const recentVideos = await getChannelVideoList(channelUrl, { limit: 5 });
+    // Fetch sample of recent videos (limit to 10 for preview)
+    const recentVideos = await getChannelVideoList(channelUrl, { limit: 10 });
 
     return NextResponse.json({
       channel: channelInfo,

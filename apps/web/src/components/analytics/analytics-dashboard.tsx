@@ -14,6 +14,7 @@ import { WatchSessionsTable } from './watch-sessions-table';
 import { MostWatchedVideos } from './most-watched-videos';
 import { AIAnalyticsPanel } from './ai-analytics-panel';
 import { InteractionAnalytics } from './interaction-analytics';
+import { ChildInterestsWidget } from './child-interests-widget';
 import { DateRangePicker, DateRangeValue } from '@/components/ui/date-range-picker';
 
 interface ChildProfile {
@@ -138,6 +139,17 @@ export function AnalyticsDashboard({ profiles }: AnalyticsDashboardProps) {
           endDate={dateRange.end}
         />
       )}
+
+      {/* Child Interests */}
+      {!loading && selectedProfileId !== 'all' && (() => {
+        const selectedProfile = profiles.find(p => p.id === selectedProfileId);
+        return selectedProfile ? (
+          <ChildInterestsWidget
+            profileId={selectedProfileId}
+            ageRating={selectedProfile.ageRating}
+          />
+        ) : null;
+      })()}
 
       {/* Interaction Analytics */}
       {!loading && (

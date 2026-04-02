@@ -28,6 +28,7 @@ export async function GET(
       where: { id: profileId },
       select: {
         id: true,
+        ageRating: true,
         user: {
           select: {
             familyId: true,
@@ -93,6 +94,7 @@ export async function GET(
         endedAt: conversation.endedAt,
         isFavorite: conversation.isFavorite,
         topics: conversation.topics,
+        childAgeRating: childProfile.ageRating,
         hasFlags: conversation.hasFlags,
         flags: conversation.flags,
         messages: conversation.messages.map((msg) => ({

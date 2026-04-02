@@ -8,20 +8,30 @@
 import { useState } from 'react';
 import { ImportForm } from './import-form';
 import { MagnetImportForm } from './magnet-import-form';
+import { YoutubeSearchPanel } from './youtube-search-panel';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface ImportTabsProps {
   defaultSource?: string;
+  prefilledQuery?: string;
+  ageRating?: string;
 }
 
-export function ImportTabs({ defaultSource = 'youtube' }: ImportTabsProps) {
+export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRating }: ImportTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'youtube' | 'realdebrid'>(
-    defaultSource === 'realdebrid' ? 'realdebrid' : 'youtube'
+
+  const getDefaultTab = () => {
+    if (defaultSource === 'realdebrid') return 'realdebrid';
+    if (defaultSource === 'search' || prefilledQuery) return 'search';
+    return 'youtube';
+  };
+
+  const [activeTab, setActiveTab] = useState<'youtube' | 'realdebrid' | 'search'>(
+    getDefaultTab()
   );
 
-  const switchTab = (tab: 'youtube' | 'realdebrid') => {
+  const switchTab = (tab: 'youtube' | 'realdebrid' | 'search') => {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('source', tab);
@@ -42,7 +52,20 @@ export function ImportTabs({ defaultSource = 'youtube' }: ImportTabsProps) {
         >
           <span className="flex items-center space-x-2">
             <span>▶️</span>
-            <span>YouTube</span>
+            <span>YouTube URL</span>
+          </span>
+        </button>
+        <button
+          onClick={() => switchTab('search')}
+          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === 'search'
+              ? 'border-green-600 text-green-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <span className="flex items-center space-x-2">
+            <span>🔍</span>
+            <span>Search YouTube</span>
           </span>
         </button>
         <button
@@ -75,6 +98,19 @@ export function ImportTabs({ defaultSource = 'youtube' }: ImportTabsProps) {
             </div>
             <ImportForm />
           </>
+        ) : activeTab === 'search' ? (
+          <>
+            <div className="mb-6 text-center">
+              <div className="mb-4 text-6xl">🔍</div>
+              <h2 className="mb-2 text-2xl font-bold text-gray-900">
+                Search YouTube
+              </h2>
+              <p className="text-gray-600">
+                Find content by topic and import directly to your library
+              </p>
+            </div>
+            <YoutubeSearchPanel prefilledQuery={prefilledQuery} ageRating={ageRating} />
+          </>
         ) : (
           <>
             <div className="mb-6 text-center">
@@ -92,14 +128,23 @@ export function ImportTabs({ defaultSource = 'youtube' }: ImportTabsProps) {
       </div>
 
       {/* Info Section */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">📺 YouTube Import</h3>
+          <h3 className="font-semibold text-blue-900 mb-2">▶️ YouTube URL</h3>
           <ul className="space-y-1 text-sm text-blue-800">
-            <li>• Perfect for educational channels</li>
+            <li>• Paste a direct video URL</li>
             <li>• Single video imports</li>
             <li>• Automatic metadata extraction</li>
             <li>• Fast and reliable</li>
+          </ul>
+        </div>
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+          <h3 className="font-semibold text-green-900 mb-2">🔍 Search YouTube</h3>
+          <ul className="space-y-1 text-sm text-green-800">
+            <li>• Search by topic or keyword</li>
+            <li>• Browse results before importing</li>
+            <li>• Age-scoped search results</li>
+            <li>• Import multiple at once</li>
           </ul>
         </div>
         <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">

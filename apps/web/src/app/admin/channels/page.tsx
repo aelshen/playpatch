@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/client';
 import Link from 'next/link';
-import { Plus, Youtube } from 'lucide-react';
+import { Plus, Youtube, Compass } from 'lucide-react';
 import { ChannelCard } from '@/components/channels/channel-card';
 
 export default async function ChannelsPage() {
@@ -44,13 +44,22 @@ export default async function ChannelsPage() {
             Manage YouTube channels and automatically import new videos
           </p>
         </div>
-        <Link
-          href="/admin/channels/add"
-          className="rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Channel
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/channels/discover"
+            className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2"
+          >
+            <Compass className="w-5 h-5" />
+            Discover Channels
+          </Link>
+          <Link
+            href="/admin/channels/add"
+            className="rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Add Channel
+          </Link>
+        </div>
       </div>
 
       {/* Channels List */}

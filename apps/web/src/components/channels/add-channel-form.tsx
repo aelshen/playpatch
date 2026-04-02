@@ -29,10 +29,14 @@ interface ChannelPreview {
 
 type Step = 'url' | 'preview' | 'configure' | 'success';
 
-export function AddChannelForm() {
+interface AddChannelFormProps {
+  initialUrl?: string;
+}
+
+export function AddChannelForm({ initialUrl }: AddChannelFormProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('url');
-  const [channelUrl, setChannelUrl] = useState('');
+  const [channelUrl, setChannelUrl] = useState(initialUrl ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ChannelPreview | null>(null);
@@ -40,6 +44,7 @@ export function AddChannelForm() {
   // Configuration state
   const [syncMode, setSyncMode] = useState<'REVIEW' | 'AUTO_APPROVE' | 'SELECTIVE'>('REVIEW');
   const [syncFrequency, setSyncFrequency] = useState<'MANUAL' | 'DAILY' | 'WEEKLY' | 'HOURLY'>('DAILY');
+  const [autoAgeRating, setAutoAgeRating] = useState<string>('');
   const [initialVideoLimit, setInitialVideoLimit] = useState(10);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [maxDuration, setMaxDuration] = useState<number | undefined>(undefined);
@@ -81,6 +86,7 @@ export function AddChannelForm() {
           url: channelUrl,
           syncMode,
           syncFrequency,
+          autoAgeRating: autoAgeRating || undefined,
           initialVideoLimit,
           filters: {
             maxDuration: maxDuration ? maxDuration * 60 : undefined,
@@ -295,6 +301,29 @@ export function AddChannelForm() {
                   </label>
                 </div>
               </div>
+
+              {/* Auto-Approve Age Rating — only relevant when AUTO_APPROVE is selected */}
+              {syncMode === 'AUTO_APPROVE' && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <label className="block text-sm font-medium text-amber-900 mb-2">
+                    Age Rating for Auto-Approved Videos
+                  </label>
+                  <select
+                    value={autoAgeRating}
+                    onChange={(e) => setAutoAgeRating(e.target.value)}
+                    className="w-full rounded-lg border border-amber-300 bg-white px-4 py-2 text-gray-900"
+                  >
+                    <option value="">Suggest based on each video's content</option>
+                    <option value="AGE_2_PLUS">Ages 2+</option>
+                    <option value="AGE_4_PLUS">Ages 4+</option>
+                    <option value="AGE_7_PLUS">Ages 7+</option>
+                    <option value="AGE_10_PLUS">Ages 10+</option>
+                  </select>
+                  <p className="mt-2 text-xs text-amber-800">
+                    Auto-approved videos will be immediately visible to children with a matching or lower age profile. Setting a fixed rating is recommended for trusted channels.
+                  </p>
+                </div>
+              )}
 
               {/* Sync Frequency */}
               <div>

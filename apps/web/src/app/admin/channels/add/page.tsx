@@ -9,7 +9,11 @@ import { AddChannelForm } from '@/components/channels/add-channel-form';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 
-export default async function AddChannelPage() {
+export default async function AddChannelPage({
+  searchParams,
+}: {
+  searchParams: { url?: string; name?: string };
+}) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -28,7 +32,7 @@ export default async function AddChannelPage() {
       </Link>
 
       {/* Form */}
-      <AddChannelForm />
+      <AddChannelForm initialUrl={searchParams.url} />
     </div>
   );
 }
