@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { ImportForm } from './import-form';
 import { MagnetImportForm } from './magnet-import-form';
 import { YoutubeSearchPanel } from './youtube-search-panel';
+import { PlexBrowser } from './plex-browser';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface ImportTabsProps {
@@ -24,14 +25,15 @@ export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRatin
   const getDefaultTab = () => {
     if (defaultSource === 'realdebrid') return 'realdebrid';
     if (defaultSource === 'search' || prefilledQuery) return 'search';
+    if (defaultSource === 'plex') return 'plex';
     return 'youtube';
   };
 
-  const [activeTab, setActiveTab] = useState<'youtube' | 'realdebrid' | 'search'>(
+  const [activeTab, setActiveTab] = useState<'youtube' | 'realdebrid' | 'search' | 'plex'>(
     getDefaultTab()
   );
 
-  const switchTab = (tab: 'youtube' | 'realdebrid' | 'search') => {
+  const switchTab = (tab: 'youtube' | 'realdebrid' | 'search' | 'plex') => {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('source', tab);
@@ -81,6 +83,19 @@ export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRatin
             <span>RealDebrid</span>
           </span>
         </button>
+        <button
+          onClick={() => switchTab('plex')}
+          className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+            activeTab === 'plex'
+              ? 'border-orange-500 text-orange-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <span className="flex items-center space-x-2">
+            <span>🎬</span>
+            <span>Plex</span>
+          </span>
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -111,7 +126,7 @@ export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRatin
             </div>
             <YoutubeSearchPanel prefilledQuery={prefilledQuery} ageRating={ageRating} />
           </>
-        ) : (
+        ) : activeTab === 'realdebrid' ? (
           <>
             <div className="mb-6 text-center">
               <div className="mb-4 text-6xl">🧲</div>
@@ -124,11 +139,24 @@ export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRatin
             </div>
             <MagnetImportForm />
           </>
+        ) : (
+          <>
+            <div className="mb-6 text-center">
+              <div className="mb-4 text-6xl">🎬</div>
+              <h2 className="mb-2 text-2xl font-bold text-gray-900">
+                Browse Plex Library
+              </h2>
+              <p className="text-gray-600">
+                Import movies and TV shows from your local Plex server
+              </p>
+            </div>
+            <PlexBrowser />
+          </>
         )}
       </div>
 
       {/* Info Section */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <h3 className="font-semibold text-blue-900 mb-2">▶️ YouTube URL</h3>
           <ul className="space-y-1 text-sm text-blue-800">
@@ -154,6 +182,15 @@ export function ImportTabs({ defaultSource = 'youtube', prefilledQuery, ageRatin
             <li>• No torrent client needed</li>
             <li>• Downloads via HTTPS</li>
             <li>• Great for series and collections</li>
+          </ul>
+        </div>
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+          <h3 className="font-semibold text-orange-900 mb-2">🎬 Plex Library</h3>
+          <ul className="space-y-1 text-sm text-orange-800">
+            <li>• Browse your local Plex server</li>
+            <li>• Import movies & TV episodes</li>
+            <li>• Parent review before kids watch</li>
+            <li>• Streams directly from Plex</li>
           </ul>
         </div>
       </div>
