@@ -1,7 +1,8 @@
 /**
  * GET /api/plex/stream/[ratingKey]
- * Proxies Plex video stream through the PlayPatch server.
- * This keeps the Plex token server-side and handles range requests.
+ * Returns a proxied HLS manifest from Plex's universal transcoder.
+ * Segment URLs in the manifest are rewritten to go through /api/plex/segment
+ * so the Plex token never reaches the browser.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,7 +11,7 @@ import { prisma } from '@/lib/db/client';
 import { logger } from '@/lib/logger';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { ratingKey: string } }
 ) {
   try {
@@ -22,49 +23,83 @@ export async function GET(
       return NextResponse.json({ error: 'No Plex server connected' }, { status: 401 });
     }
 
-    // Get metadata to find the part key
-    const metaRes = await fetch(
-      `${conn.serverUrl}/library/metadata/${params.ratingKey}`,
-      {
-        headers: { 'X-Plex-Token': conn.token, Accept: 'application/json' },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-    if (!metaRes.ok) {
-      return NextResponse.json({ error: 'Media not found' }, { status: 404 });
-    }
+    const base = conn.serverUrl.replace(/\/$/, '');
 
-    const meta = await metaRes.json();
-    const partKey = meta?.MediaContainer?.Metadata?.[0]?.Media?.[0]?.Part?.[0]?.key;
-    if (!partKey) {
-      return NextResponse.json({ error: 'No playable media found' }, { status: 404 });
-    }
-
-    // Proxy the stream, forwarding Range header for seeking support
-    const streamUrl = `${conn.serverUrl}${partKey}?X-Plex-Token=${conn.token}`;
-    const rangeHeader = request.headers.get('range');
-
-    const upstream = await fetch(streamUrl, {
-      headers: rangeHeader ? { Range: rangeHeader } : {},
+    // Request HLS transcoded stream from Plex
+    const plexParams = new URLSearchParams({
+      path: `/library/metadata/${params.ratingKey}`,
+      protocol: 'hls',
+      directStream: '1',
+      directPlay: '0',
+      'X-Plex-Token': conn.token,
+      'X-Plex-Product': 'PlayPatch',
+      'X-Plex-Client-Identifier': 'playpatch-web',
+      'X-Plex-Version': '1.0',
+      'X-Plex-Platform': 'Chrome',
+      'X-Plex-Device': 'Browser',
     });
 
-    const headers = new Headers();
-    const contentType = upstream.headers.get('content-type');
-    const contentLength = upstream.headers.get('content-length');
-    const contentRange = upstream.headers.get('content-range');
-    const acceptRanges = upstream.headers.get('accept-ranges');
+    const plexHlsUrl = `${base}/video/:/transcode/universal/start.m3u8?${plexParams}`;
 
-    if (contentType) headers.set('content-type', contentType);
-    if (contentLength) headers.set('content-length', contentLength);
-    if (contentRange) headers.set('content-range', contentRange);
-    if (acceptRanges) headers.set('accept-ranges', acceptRanges);
+    const res = await fetch(plexHlsUrl, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) {
+      logger.error({ status: res.status, ratingKey: params.ratingKey }, 'Plex HLS request failed');
+      return NextResponse.json({ error: 'Failed to start Plex stream' }, { status: 502 });
+    }
 
-    return new NextResponse(upstream.body, {
-      status: upstream.status,
-      headers,
+    const manifest = await res.text();
+
+    // Rewrite all non-comment, non-empty lines (URLs) to go through our segment proxy
+    const rewritten = rewriteManifest(manifest, base, conn.token);
+
+    return new NextResponse(rewritten, {
+      headers: {
+        'Content-Type': 'application/vnd.apple.mpegurl',
+        'Cache-Control': 'no-cache, no-store',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   } catch (error) {
-    logger.error({ error, ratingKey: params.ratingKey }, 'Plex stream proxy error');
+    logger.error({ error, ratingKey: params.ratingKey }, 'Plex HLS proxy error');
     return NextResponse.json({ error: 'Stream error' }, { status: 500 });
   }
+}
+
+/**
+ * Rewrite URLs in an HLS manifest to go through /api/plex/segment.
+ * Handles both master playlists (which reference sub-playlists) and
+ * media playlists (which reference .ts/.mp4 segments).
+ */
+function rewriteManifest(manifest: string, plexBase: string, token: string): string {
+  return manifest
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return line;
+
+      // Build the full Plex URL for this line
+      let fullUrl: string;
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        fullUrl = trimmed;
+      } else {
+        fullUrl = `${plexBase}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+      }
+
+      // Ensure the Plex token is present
+      try {
+        const u = new URL(fullUrl);
+        if (!u.searchParams.has('X-Plex-Token')) {
+          u.searchParams.set('X-Plex-Token', token);
+        }
+        fullUrl = u.toString();
+      } catch {
+        // Not a valid URL, leave as-is
+        return line;
+      }
+
+      // Encode and route through our segment proxy
+      const encoded = Buffer.from(fullUrl).toString('base64url');
+      return `/api/plex/segment?u=${encoded}`;
+    })
+    .join('\n');
 }

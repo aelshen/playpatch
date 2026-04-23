@@ -22,6 +22,7 @@ import {
   VIDEO_STATUS_COLORS,
   APPROVAL_STATUS_COLORS,
 } from '@/lib/constants/video';
+import { PlexVideoPlayer } from '@/components/admin/plex-video-player';
 
 interface AISafetyAnalysis {
   safetyScore?: number;
@@ -324,13 +325,7 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
           <div className="mb-6">
             <h3 className="mb-2 font-semibold text-gray-900">Video Preview</h3>
             <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
-              <video
-                controls
-                className="h-full w-full"
-                src={`/api/plex/stream/${video.sourceId.replace('plex:', '')}`}
-              >
-                Your browser does not support the video tag.
-              </video>
+              <PlexVideoPlayer ratingKey={video.sourceId.replace('plex:', '')} />
             </div>
             <p className="mt-2 text-xs text-gray-600">
               Streaming directly from your Plex server
