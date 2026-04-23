@@ -41,6 +41,7 @@ interface Video {
   thumbnailPath: string | null;
   sourceUrl: string;
   sourceType: string;
+  sourceId: string | null;
   status: string;
   approvalStatus: string;
   ageRating: string;
@@ -203,7 +204,9 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
               <p className="mt-1 text-sm text-blue-700">
                 {video.status === 'READY' &&
                   video.approvalStatus === 'PENDING' &&
-                  'Review the video using the YouTube preview below, then approve to start download'}
+                  (video.sourceType === 'PLEX'
+                    ? 'Preview the video below from your Plex server, then approve'
+                    : 'Review the video using the YouTube preview below, then approve to start download')}
                 {video.status === 'READY' &&
                   video.approvalStatus === 'APPROVED' &&
                   'Video is approved and will be downloaded shortly'}
@@ -299,8 +302,8 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
       {/* Video Info Card */}
       <div className="rounded-lg bg-white p-6 shadow">
-        {/* Video Preview - Always show YouTube embed for YouTube videos */}
-        {video.sourceUrl && video.sourceType === 'YOUTUBE' && (
+        {/* Video Preview */}
+        {video.sourceType === 'YOUTUBE' && (
           <div className="mb-6">
             <h3 className="mb-2 font-semibold text-gray-900">Video Preview</h3>
             <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
@@ -317,8 +320,26 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
           </div>
         )}
 
-        {/* Thumbnail fallback for non-YouTube videos */}
-        {video.sourceType !== 'YOUTUBE' && video.thumbnailPath && (
+        {video.sourceType === 'PLEX' && video.sourceId && (
+          <div className="mb-6">
+            <h3 className="mb-2 font-semibold text-gray-900">Video Preview</h3>
+            <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
+              <video
+                controls
+                className="h-full w-full"
+                src={`/api/plex/stream/${video.sourceId.replace('plex:', '')}`}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              Streaming directly from your Plex server
+            </p>
+          </div>
+        )}
+
+        {/* Thumbnail fallback for other non-YouTube sources */}
+        {video.sourceType !== 'YOUTUBE' && video.sourceType !== 'PLEX' && video.thumbnailPath && (
           <div className="mb-6">
             <div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
               <img
@@ -494,14 +515,18 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
         {/* Source URL */}
         <div className="mb-6">
           <h3 className="mb-2 font-semibold text-gray-900">Source</h3>
-          <a
-            href={video.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="break-all text-sm text-blue-600 hover:underline"
-          >
-            {video.sourceUrl}
-          </a>
+          {video.sourceType === 'PLEX' ? (
+            <span className="text-sm text-gray-500">Plex Media Server</span>
+          ) : (
+            <a
+              href={video.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-sm text-blue-600 hover:underline"
+            >
+              {video.sourceUrl}
+            </a>
+          )}
         </div>
       </div>
 
