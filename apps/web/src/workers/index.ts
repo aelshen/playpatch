@@ -3,7 +3,6 @@
  * Starts all video processing workers
  */
 
-import { createVideoDownloadWorker } from './video-download';
 import { createVideoTranscodeWorker } from './video-transcode';
 import { createChannelScanWorker } from './channel-scan';
 import { graphBuilderWorker } from './graph-builder';
@@ -19,10 +18,6 @@ async function main() {
     logger.info('Initializing storage backend...');
     await initializeStorage();
     logger.info('✓ Storage backend initialized');
-
-    // Start video download worker
-    const downloadWorker = createVideoDownloadWorker();
-    logger.info('✓ Video download worker started');
 
     // Start video transcode worker
     const transcodeWorker = createVideoTranscodeWorker();
@@ -43,7 +38,6 @@ async function main() {
     // Graceful shutdown
     const shutdown = async () => {
       logger.info('Shutting down workers...');
-      await downloadWorker.close();
       await transcodeWorker.close();
       await channelScanWorker.close();
       await graphBuilderWorker.close();

@@ -43,9 +43,11 @@ export async function GET(request: NextRequest) {
     const contentType = upstream.headers.get('content-type') ?? '';
 
     // If this is another HLS playlist, rewrite it too
+    // Use the URL's directory as the base for relative URL resolution
     if (contentType.includes('mpegurl') || plexUrl.includes('.m3u8')) {
       const text = await upstream.text();
-      const rewritten = rewriteManifest(text, base, conn.token);
+      const urlBase = plexUrl.substring(0, plexUrl.lastIndexOf('/') + 1);
+      const rewritten = rewriteManifest(text, urlBase, conn.token);
       return new NextResponse(rewritten, {
         headers: {
           'Content-Type': 'application/vnd.apple.mpegurl',
@@ -68,6 +70,8 @@ export async function GET(request: NextRequest) {
 }
 
 function rewriteManifest(manifest: string, plexBase: string, token: string): string {
+  // plexBase should be the directory URL (ending with /) from which relative URLs resolve
+  const base = plexBase.endsWith('/') ? plexBase : plexBase + '/';
   return manifest
     .split('\n')
     .map((line) => {
@@ -77,8 +81,13 @@ function rewriteManifest(manifest: string, plexBase: string, token: string): str
       let fullUrl: string;
       if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
         fullUrl = trimmed;
+      } else if (trimmed.startsWith('/')) {
+        // Absolute path — resolve against server root
+        const serverRoot = base.match(/^https?:\/\/[^/]+/)?.[0] ?? '';
+        fullUrl = serverRoot + trimmed;
       } else {
-        fullUrl = `${plexBase}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+        // Relative path — resolve against base directory
+        fullUrl = base + trimmed;
       }
 
       try {

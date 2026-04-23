@@ -31,7 +31,6 @@ const defaultQueueOptions: QueueOptions = {
 
 // Define queue names
 export const QUEUE_NAMES = {
-  VIDEO_DOWNLOAD: 'video-download',
   VIDEO_TRANSCODE: 'video-transcode',
   VIDEO_TRANSCRIBE: 'video-transcribe',
   THUMBNAIL_GENERATE: 'thumbnail-generate',
@@ -49,7 +48,6 @@ export interface TopicExtractionJobData {
 }
 
 // Create queues
-export const videoDownloadQueue = new Queue(QUEUE_NAMES.VIDEO_DOWNLOAD, defaultQueueOptions);
 export const videoTranscodeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCODE, defaultQueueOptions);
 export const videoTranscribeQueue = new Queue(QUEUE_NAMES.VIDEO_TRANSCRIBE, defaultQueueOptions);
 export const thumbnailGenerateQueue = new Queue(
@@ -97,19 +95,6 @@ export const topicExtractionQueue = new Queue<TopicExtractionJobData>(
 );
 
 /**
- * Add video download job
- */
-export async function addVideoDownloadJob(data: {
-  videoId: string;
-  sourceUrl: string;
-  sourceType: string;
-}) {
-  return await videoDownloadQueue.add('download', data, {
-    priority: 1,
-  });
-}
-
-/**
  * Add video transcode job
  */
 export async function addVideoTranscodeJob(data: { videoId: string; localPath: string }) {
@@ -132,28 +117,6 @@ export async function addVideoTranscribeJob(data: { videoId: string; localPath: 
  */
 export async function addThumbnailGenerateJob(data: { videoId: string; localPath: string }) {
   return await thumbnailGenerateQueue.add('generate', data, {
-    priority: 2,
-  });
-}
-
-/**
- * Add video import job (for channel sync)
- */
-export async function addVideoImportJob(data: {
-  videoId: string;
-  familyId: string;
-  sourceUrl: string;
-  sourceType: string;
-  channelId?: string;
-  metadata?: {
-    title?: string;
-    duration?: number;
-    thumbnailUrl?: string;
-    uploadDate?: string;
-    viewCount?: number;
-  };
-}) {
-  return await videoDownloadQueue.add('import', data, {
     priority: 2,
   });
 }
@@ -243,7 +206,6 @@ export async function getAllQueueStats() {
 }
 
 export const queues = {
-  videoDownload: videoDownloadQueue,
   videoTranscode: videoTranscodeQueue,
   videoTranscribe: videoTranscribeQueue,
   thumbnailGenerate: thumbnailGenerateQueue,

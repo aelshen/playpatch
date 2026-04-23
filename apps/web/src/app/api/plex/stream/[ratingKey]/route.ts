@@ -26,20 +26,27 @@ export async function GET(
     const base = conn.serverUrl.replace(/\/$/, '');
 
     // Request HLS transcoded stream from Plex
-    const plexParams = new URLSearchParams({
-      path: `/library/metadata/${params.ratingKey}`,
-      protocol: 'hls',
-      directStream: '1',
-      directPlay: '0',
-      'X-Plex-Token': conn.token,
-      'X-Plex-Product': 'PlayPatch',
-      'X-Plex-Client-Identifier': 'playpatch-web',
-      'X-Plex-Version': '1.0',
-      'X-Plex-Platform': 'Chrome',
-      'X-Plex-Device': 'Browser',
-    });
+    // Build params manually to avoid double-encoding the path
+    const plexParams = [
+      `path=%2Flibrary%2Fmetadata%2F${params.ratingKey}`,
+      'protocol=hls',
+      'directStream=1',
+      'directPlay=0',
+      'hasMDE=1',
+      'mediaIndex=0',
+      'partIndex=0',
+      `X-Plex-Token=${encodeURIComponent(conn.token)}`,
+      'X-Plex-Product=PlayPatch',
+      'X-Plex-Client-Identifier=playpatch-web',
+      'X-Plex-Version=1.0',
+      'X-Plex-Platform=Chrome',
+      'X-Plex-Platform-Version=100',
+      'X-Plex-Device=OSX',
+      'X-Plex-Device-Name=PlayPatch',
+    ].join('&');
 
-    const plexHlsUrl = `${base}/video/:/transcode/universal/start.m3u8?${plexParams}`;
+    const transcodeBase = `${base}/video/:/transcode/universal/`;
+    const plexHlsUrl = `${transcodeBase}start.m3u8?${plexParams}`;
 
     const res = await fetch(plexHlsUrl, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) {
@@ -50,7 +57,8 @@ export async function GET(
     const manifest = await res.text();
 
     // Rewrite all non-comment, non-empty lines (URLs) to go through our segment proxy
-    const rewritten = rewriteManifest(manifest, base, conn.token);
+    // Relative URLs in the manifest are relative to the transcode base, not server root
+    const rewritten = rewriteManifest(manifest, transcodeBase, conn.token);
 
     return new NextResponse(rewritten, {
       headers: {
@@ -82,7 +90,8 @@ function rewriteManifest(manifest: string, plexBase: string, token: string): str
       if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
         fullUrl = trimmed;
       } else {
-        fullUrl = `${plexBase}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+        const normalBase = plexBase.endsWith('/') ? plexBase : plexBase + '/';
+        fullUrl = normalBase + (trimmed.startsWith('/') ? trimmed.slice(1) : trimmed);
       }
 
       // Ensure the Plex token is present

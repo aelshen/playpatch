@@ -208,7 +208,6 @@ enum SourceType {
   YOUTUBE
   VIMEO
   UPLOAD
-  REALDEBRID
   PLEX
   OTHER
 }
