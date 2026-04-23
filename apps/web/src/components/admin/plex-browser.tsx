@@ -22,6 +22,7 @@ interface PlexItem {
   contentRating: string | null;
   duration: number | null;
   thumbUrl: string | null;
+  grandparentRatingKey?: string;
   grandparentTitle?: string;
   parentTitle?: string;
   index?: number;

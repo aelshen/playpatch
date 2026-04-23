@@ -21,12 +21,13 @@ export interface PlexItem {
   contentRating: string | null; // "G", "PG", "TV-Y", "TV-Y7", "PG-13", etc.
   duration: number | null;      // milliseconds
   thumbUrl: string | null;      // path on Plex server
-  grandparentTitle?: string;    // show name (for episodes)
-  parentTitle?: string;         // season name (for episodes)
-  index?: number;               // episode number
-  parentIndex?: number;         // season number
+  grandparentRatingKey?: string; // show ratingKey (for episodes)
+  grandparentTitle?: string;     // show name (for episodes)
+  parentTitle?: string;          // season name (for episodes)
+  index?: number;                // episode number
+  parentIndex?: number;          // season number
   // Raw part info for streaming
-  partKey?: string;             // e.g., /library/parts/123/file.mkv
+  partKey?: string;              // e.g., /library/parts/123/file.mkv
 }
 
 export interface PlexSearchResult {
@@ -204,6 +205,7 @@ export async function getPlexChildren(
         contentRating: (m.contentRating as string) || null,
         duration: m.duration ? Math.round(Number(m.duration) / 1000) : null,
         thumbUrl: m.thumb ? `${base}${m.thumb}?X-Plex-Token=${token}` : null,
+        grandparentRatingKey: m.grandparentRatingKey ? String(m.grandparentRatingKey) : undefined,
         grandparentTitle: m.grandparentTitle ? String(m.grandparentTitle) : undefined,
         parentTitle: m.parentTitle ? String(m.parentTitle) : undefined,
         index: m.index ? Number(m.index) : undefined,

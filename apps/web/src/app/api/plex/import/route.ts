@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { ratingKey, title, summary, year, contentRating, duration, thumbUrl, partKey, type } = body;
+    const { ratingKey, title, summary, year, contentRating, duration, thumbUrl, partKey, type,
+            grandparentRatingKey, grandparentTitle } = body;
 
     if (!ratingKey || !title) {
       return NextResponse.json({ error: 'ratingKey and title are required' }, { status: 400 });
@@ -41,6 +42,23 @@ export async function POST(request: NextRequest) {
     // sourceUrl: the Plex metadata endpoint (used by stream proxy to get part info)
     const sourceUrl = `${conn.serverUrl}/library/metadata/${ratingKey}`;
 
+    // If this is a TV episode, create/find the show channel and link the video
+    let channelId: string | undefined;
+    if (grandparentTitle && grandparentRatingKey) {
+      const showSourceId = `plex:show:${grandparentRatingKey}`;
+      const channel = await prisma.channel.upsert({
+        where: { familyId_sourceType_sourceId: { familyId: user.familyId, sourceType: 'PLEX', sourceId: showSourceId } },
+        create: {
+          familyId: user.familyId,
+          sourceType: 'PLEX',
+          sourceId: showSourceId,
+          name: grandparentTitle,
+        },
+        update: {},
+      });
+      channelId = channel.id;
+    }
+
     const video = await prisma.video.create({
       data: {
         familyId: user.familyId,
@@ -55,6 +73,7 @@ export async function POST(request: NextRequest) {
         status: 'READY',         // Plex serves it directly — no download needed
         approvalStatus: 'PENDING', // Parent must still review
         playbackMode: 'EMBED',   // We proxy via /api/plex/stream/[ratingKey]
+        ...(channelId ? { channelId } : {}),
       },
     });
 

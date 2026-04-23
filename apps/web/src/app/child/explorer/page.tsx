@@ -5,6 +5,7 @@
 
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+
 import { getChildSession } from '@/lib/actions/profile-selection';
 import { prisma } from '@/lib/db/client';
 import { ChildVideoGrid } from '@/components/child/video-grid';
@@ -12,9 +13,10 @@ import { ChildSearchBar } from '@/components/child/search-bar';
 import { FavoritesSection } from '@/components/child/favorites-section';
 import { ContinueWatching } from '@/components/child/continue-watching';
 import { CategorySection } from '@/components/child/category-section';
+import { ShowsSection } from '@/components/child/shows-section';
 import { TimeRemainingBadge } from '@/components/child/time-remaining-badge';
 import { getAllowedAgeRatings } from '@/lib/utils/age-rating';
-import { getTimeRemainingToday, TimeLimits } from '@/lib/utils/time-limits';
+import { getTimeRemainingToday, TimeLimits, isTimeLimitReached } from '@/lib/utils/time-limits';
 import { Sparkles } from 'lucide-react';
 import { Suspense } from 'react';
 
@@ -29,13 +31,15 @@ export default async function ExplorerHomePage() {
     redirect('/child/toddler');
   }
 
-  // Fetch child profile for age rating and time limits
+  // Fetch child profile (with user for familyId) in a single query
   const childProfile = await prisma.childProfile.findUnique({
     where: { id: childSession.profileId },
+    include: { user: { select: { familyId: true } } },
   });
 
   const ageRating = childProfile?.ageRating || 'AGE_10_PLUS';
   const allowedRatings = getAllowedAgeRatings(ageRating);
+  const familyId = childProfile?.user?.familyId ?? '';
 
   // Calculate time remaining for today
   const timeRemaining = await getTimeRemainingToday(
@@ -43,19 +47,35 @@ export default async function ExplorerHomePage() {
     childProfile?.timeLimits as TimeLimits | null
   );
 
-  // Fetch new/recommended videos
+  const timeLimitHit = isTimeLimitReached(timeRemaining);
+
+  // Check if there are Plex shows for this family so we know whether to exclude them below
+  const hasPlexShows =
+    familyId !== '' &&
+    (await prisma.channel.count({
+      where: {
+        familyId,
+        sourceType: 'PLEX',
+        videos: {
+          some: {
+            approvalStatus: 'APPROVED',
+            playbackMode: { in: ['EMBED', 'HLS'] },
+            ageRating: { in: allowedRatings },
+          },
+        },
+      },
+    })) > 0;
+
+  // Fetch new/recommended videos; only exclude Plex when a Shows section will render
   const newVideos = await prisma.video.findMany({
     where: {
       approvalStatus: 'APPROVED',
       playbackMode: { in: ['EMBED', 'HLS'] },
       ageRating: { in: allowedRatings },
+      ...(hasPlexShows ? { sourceType: { not: 'PLEX' } } : {}),
     },
-    include: {
-      channel: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    include: { channel: true },
+    orderBy: { createdAt: 'desc' },
     take: 12,
   });
 
@@ -97,45 +117,67 @@ export default async function ExplorerHomePage() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl space-y-12 px-4 py-8">
-        {/* Continue Watching */}
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <ContinueWatching childId={childSession.profileId} mode="explorer" />
-        </Suspense>
-
-        {/* Favorites */}
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <FavoritesSection childId={childSession.profileId} mode="explorer" />
-        </Suspense>
-
-        {/* New & Recommended */}
-        <div>
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-6 w-6 fill-yellow-500 text-yellow-500" />
-            <h2 className="text-2xl font-bold text-gray-900">New & Recommended</h2>
+        {timeLimitHit ? (
+          /* Time's up screen */
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-6 text-8xl">⏰</div>
+            <h2 className="mb-3 text-3xl font-bold text-gray-900">Time's up for today!</h2>
+            <p className="max-w-md text-lg text-gray-600">
+              You've used all your screen time for today. Come back tomorrow!
+            </p>
+            <Link
+              href="/child/exit"
+              className="mt-8 rounded-xl bg-blue-600 px-8 py-3 text-lg font-semibold text-white hover:bg-blue-700"
+            >
+              Exit
+            </Link>
           </div>
-          <ChildVideoGrid videos={newVideos} />
-        </div>
+        ) : (
+          <>
+            {/* Continue Watching */}
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <ContinueWatching childId={childSession.profileId} mode="explorer" />
+            </Suspense>
 
-        {/* Categories */}
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <CategorySection category="Science" ageRating={ageRating} mode="explorer" icon="🔬" />
-        </Suspense>
+            {/* Shows (Plex) */}
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <ShowsSection ageRating={ageRating} familyId={familyId} />
+            </Suspense>
 
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <CategorySection category="Animals" ageRating={ageRating} mode="explorer" icon="🦁" />
-        </Suspense>
+            {/* Favorites */}
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <FavoritesSection childId={childSession.profileId} mode="explorer" />
+            </Suspense>
 
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <CategorySection category="Music" ageRating={ageRating} mode="explorer" icon="🎵" />
-        </Suspense>
+            {/* New & Recommended */}
+            {newVideos.length > 0 && (
+              <div>
+                <div className="mb-4 flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 fill-yellow-500 text-yellow-500" />
+                  <h2 className="text-2xl font-bold text-gray-900">New & Recommended</h2>
+                </div>
+                <ChildVideoGrid videos={newVideos} />
+              </div>
+            )}
 
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <CategorySection category="Art" ageRating={ageRating} mode="explorer" icon="🎨" />
-        </Suspense>
-
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
-          <CategorySection category="Stories" ageRating={ageRating} mode="explorer" icon="📚" />
-        </Suspense>
+            {/* Categories */}
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <CategorySection category="Science" ageRating={ageRating} mode="explorer" icon="🔬" />
+            </Suspense>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <CategorySection category="Animals" ageRating={ageRating} mode="explorer" icon="🦁" />
+            </Suspense>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <CategorySection category="Music" ageRating={ageRating} mode="explorer" icon="🎵" />
+            </Suspense>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <CategorySection category="Art" ageRating={ageRating} mode="explorer" icon="🎨" />
+            </Suspense>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-white/50" />}>
+              <CategorySection category="Stories" ageRating={ageRating} mode="explorer" icon="📚" />
+            </Suspense>
+          </>
+        )}
       </main>
     </div>
   );
