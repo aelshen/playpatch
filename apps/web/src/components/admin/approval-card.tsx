@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { formatDuration } from '@/lib/utils/shared';
+import { PlexVideoPlayer } from './plex-video-player';
 import {
   approveVideoAction,
   rejectVideoAction,
@@ -22,6 +23,8 @@ interface Video {
   duration: number;
   thumbnailPath: string | null;
   sourceUrl: string;
+  sourceType: string;
+  sourceId: string | null;
   status: string;
   ageRating: string;
   categories: string[];
@@ -36,6 +39,8 @@ interface ApprovalCardProps {
   video: Video;
   isExpanded: boolean;
   onToggle: () => void;
+  isSelected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
 const AGE_RATINGS = [
@@ -72,7 +77,7 @@ function ApproveButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function ApprovalCard({ video, isExpanded, onToggle }: ApprovalCardProps) {
+export function ApprovalCard({ video, isExpanded, onToggle, isSelected, onSelect }: ApprovalCardProps) {
   const router = useRouter();
   const [ageRating, setAgeRating] = useState(video.ageRating);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(video.categories);
@@ -112,11 +117,20 @@ export function ApprovalCard({ video, isExpanded, onToggle }: ApprovalCardProps)
   return (
     <div className="overflow-hidden rounded-lg bg-white shadow">
       {/* Header */}
-      <div
-        className="flex cursor-pointer items-center justify-between p-4 hover:bg-gray-50"
-        onClick={onToggle}
-      >
-        <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between p-4 hover:bg-gray-50">
+        {onSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected ?? false}
+            onChange={(e) => onSelect(e.target.checked)}
+            onClick={(e) => e.stopPropagation()}
+            className="mr-3 h-4 w-4 flex-shrink-0 cursor-pointer rounded border-gray-300 text-blue-600"
+          />
+        )}
+        <div
+          className="flex flex-1 cursor-pointer items-center space-x-4"
+          onClick={onToggle}
+        >
           {/* Thumbnail */}
           <div className="relative h-24 w-32 flex-shrink-0 overflow-hidden rounded bg-gray-200">
             {video.thumbnailPath ? (
@@ -164,16 +178,20 @@ export function ApprovalCard({ video, isExpanded, onToggle }: ApprovalCardProps)
       {isExpanded && (
         <div className="border-t border-gray-200 p-6">
           {/* Video Preview */}
-          {video.status === 'READY' && video.sourceUrl && (
+          {video.status === 'READY' && (
             <div className="mb-6">
               <h4 className="mb-2 font-medium text-gray-900">Video Preview</h4>
               <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${extractYouTubeId(video.sourceUrl)}`}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+                {video.sourceType === 'PLEX' && video.sourceId ? (
+                  <PlexVideoPlayer ratingKey={video.sourceId.replace('plex:', '')} />
+                ) : video.sourceUrl ? (
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${extractYouTubeId(video.sourceUrl)}`}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : null}
               </div>
             </div>
           )}

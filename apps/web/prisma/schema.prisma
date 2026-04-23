@@ -20,11 +20,12 @@ model Family {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  settings    FamilySettings?
-  users       User[]
-  collections Collection[]
-  channels    Channel[]
-  videos      Video[]
+  settings       FamilySettings?
+  plexConnection PlexConnection?
+  users          User[]
+  collections    Collection[]
+  channels       Channel[]
+  videos         Video[]
 }
 
 model FamilySettings {
@@ -37,6 +38,19 @@ model FamilySettings {
   allowAI             Boolean   @default(true)
   weeklyDigestEnabled Boolean   @default(true)
   weeklyDigestEmail   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlexConnection {
+  id         String  @id @default(cuid())
+  familyId   String  @unique
+  family     Family  @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  serverUrl  String  // e.g., http://192.168.1.100:32400
+  token      String  // X-Plex-Token
+  serverName String? // from Plex /identity endpoint
+  isVerified Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,7 +208,7 @@ enum SourceType {
   YOUTUBE
   VIMEO
   UPLOAD
-  REALDEBRID
+  PLEX
   OTHER
 }
 

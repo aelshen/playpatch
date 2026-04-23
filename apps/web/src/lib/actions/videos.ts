@@ -20,7 +20,7 @@ import { logger } from '@/lib/logger';
 
 const createVideoSchema = z.object({
   sourceUrl: z.string().url('Invalid URL'),
-  sourceType: z.enum(['YOUTUBE', 'VIMEO', 'UPLOAD', 'OTHER']),
+  sourceType: z.enum(['YOUTUBE', 'VIMEO', 'UPLOAD', 'PLEX', 'OTHER']),
   sourceId: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -184,25 +184,11 @@ export async function approveVideoAction(
     // Approve the video
     await approveVideo(videoId, familyId, user.id, data);
 
-    // YouTube videos are immediately watchable via embed — no download needed
-    if (video.sourceType === 'YOUTUBE') {
-      await prisma.video.update({
-        where: { id: videoId },
-        data: { playbackMode: 'EMBED', status: 'READY' },
-      });
-    } else if (!video.localPath) {
-      // Non-YouTube sources (RealDebrid, uploads) need a download
-      const { videoDownloadQueue } = await import('@/lib/queue/client');
-
-      await videoDownloadQueue.add('download-video', {
-        videoId,
-        sourceUrl: video.sourceUrl,
-        sourceType: video.sourceType,
-        familyId,
-      });
-
-      logger.info({ videoId }, 'Queued video download after approval');
-    }
+    // All supported sources (YouTube, Plex) are immediately watchable via embed/proxy
+    await prisma.video.update({
+      where: { id: videoId },
+      data: { playbackMode: 'EMBED', status: 'READY' },
+    });
 
     revalidatePath('/admin/content');
     revalidatePath('/admin/content/approval');
@@ -213,6 +199,56 @@ export async function approveVideoAction(
     return {
       error: 'Failed to approve video. Please try again.',
     };
+  }
+}
+
+/**
+ * Bulk approve multiple videos with the same age rating and categories
+ */
+export async function bulkApproveVideosAction(
+  videoIds: string[],
+  ageRating: string,
+  categories: string[]
+): Promise<VideoActionState & { approved?: number }> {
+  try {
+    const user = await getCurrentUser();
+    const familyId = await getCurrentFamilyId();
+
+    if (!videoIds.length) return { error: 'No videos selected' };
+
+    const parsed = z.object({
+      ageRating: z.enum(['AGE_2_PLUS', 'AGE_4_PLUS', 'AGE_7_PLUS', 'AGE_10_PLUS']),
+      categories: z.array(z.string()).min(1),
+    }).safeParse({ ageRating, categories });
+
+    if (!parsed.success) {
+      return { error: parsed.error.errors[0]?.message || 'Validation failed' };
+    }
+
+    const videos = await prisma.video.findMany({
+      where: { id: { in: videoIds }, familyId, approvalStatus: 'PENDING' },
+      select: { id: true, sourceType: true, sourceUrl: true, localPath: true },
+    });
+
+    const data = { ageRating: parsed.data.ageRating, categories: parsed.data.categories };
+
+    await Promise.all(
+      videos.map(async (video) => {
+        await approveVideo(video.id, familyId, user.id, data);
+        await prisma.video.update({
+          where: { id: video.id },
+          data: { playbackMode: 'EMBED', status: 'READY' },
+        });
+      })
+    );
+
+    revalidatePath('/admin/content');
+    revalidatePath('/admin/content/approval');
+
+    return { success: true, approved: videos.length };
+  } catch (error) {
+    console.error('Bulk approve error:', error);
+    return { error: 'Failed to bulk approve videos. Please try again.' };
   }
 }
 
@@ -237,61 +273,6 @@ export async function rejectVideoAction(
     console.error('Reject video error:', error);
     return {
       error: 'Failed to reject video. Please try again.',
-    };
-  }
-}
-
-/**
- * Retry a failed video download
- */
-export async function retryVideoDownloadAction(videoId: string): Promise<VideoActionState> {
-  try {
-    await getCurrentUser();
-    const familyId = await getCurrentFamilyId();
-
-    // Get video info
-    const video = await prisma.video.findUnique({
-      where: { id: videoId },
-      select: {
-        sourceUrl: true,
-        sourceType: true,
-        status: true,
-      },
-    });
-
-    if (!video) {
-      return { error: 'Video not found' };
-    }
-
-    // Reset video status to DOWNLOADING
-    await prisma.video.update({
-      where: { id: videoId },
-      data: {
-        status: 'DOWNLOADING',
-        notes: null, // Clear previous error message
-      },
-    });
-
-    // Queue the download
-    const { videoDownloadQueue } = await import('@/lib/queue/client');
-
-    await videoDownloadQueue.add('download-video', {
-      videoId,
-      sourceUrl: video.sourceUrl,
-      sourceType: video.sourceType,
-      familyId,
-    });
-
-    logger.info({ videoId }, 'Retrying video download');
-
-    revalidatePath('/admin/content');
-    revalidatePath(`/admin/content/${videoId}`);
-
-    return { success: true };
-  } catch (error) {
-    console.error('Retry video download error:', error);
-    return {
-      error: 'Failed to retry video download. Please try again.',
     };
   }
 }

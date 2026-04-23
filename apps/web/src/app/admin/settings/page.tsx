@@ -5,10 +5,16 @@
 import { getCurrentFamilyId } from '@/lib/auth/session';
 import { getFamilySettings } from '@/lib/db/queries/family-settings';
 import { FamilySettingsForm } from '@/components/admin/family-settings-form';
+import { PlexConnectForm } from '@/components/admin/plex-connect-form';
+import { prisma } from '@/lib/db/client';
 
 export default async function SettingsPage() {
   const familyId = await getCurrentFamilyId();
   const settings = await getFamilySettings(familyId);
+  const plexConn = await prisma.plexConnection.findUnique({
+    where: { familyId },
+    select: { id: true, serverUrl: true, serverName: true, isVerified: true },
+  });
 
   return (
     <div className="space-y-6">
@@ -20,6 +26,8 @@ export default async function SettingsPage() {
       </div>
 
       <FamilySettingsForm settings={settings} />
+
+      <PlexConnectForm initialConnection={plexConn} />
     </div>
   );
 }

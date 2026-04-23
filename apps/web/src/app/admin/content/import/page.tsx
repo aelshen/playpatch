@@ -1,6 +1,5 @@
 /**
  * Video Import Page
- * SSK-037: YouTube Video Import + RealDebrid Integration
  */
 
 import { getCurrentUser } from '@/lib/auth/session';
@@ -26,7 +25,7 @@ export default async function ImportVideoPage({
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Import Content</h1>
               <p className="mt-1 text-sm text-gray-600">
-                Add videos from YouTube or RealDebrid torrents
+                Add videos from YouTube or your Plex server
               </p>
             </div>
             <Link

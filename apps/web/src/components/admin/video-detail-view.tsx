@@ -5,14 +5,13 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { formatDuration } from '@/lib/utils/shared';
 import {
   approveVideoAction,
   rejectVideoAction,
   deleteVideoAction,
-  retryVideoDownloadAction,
   type VideoActionState,
 } from '@/lib/actions/videos';
 import { useRouter } from 'next/navigation';
@@ -22,6 +21,7 @@ import {
   VIDEO_STATUS_COLORS,
   APPROVAL_STATUS_COLORS,
 } from '@/lib/constants/video';
+import { PlexVideoPlayer } from '@/components/admin/plex-video-player';
 
 interface AISafetyAnalysis {
   safetyScore?: number;
@@ -41,6 +41,7 @@ interface Video {
   thumbnailPath: string | null;
   sourceUrl: string;
   sourceType: string;
+  sourceId: string | null;
   status: string;
   approvalStatus: string;
   ageRating: string;
@@ -83,46 +84,13 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [queueStatus, setQueueStatus] = useState<any>(null);
-  const [isPolling, setIsPolling] = useState(false);
 
   const initialState: VideoActionState = { error: undefined, success: false };
   const [approveState, approveFormAction] = useFormState(approveVideoAction, initialState);
 
   // Calculate derived state
   const isPending = video.approvalStatus === 'PENDING';
-  const hasVideoFile = !!(video as any).localPath;
-  const canApprove = isPending; // Can approve at any time since we preview via YouTube
-
-  // Poll for queue status if video is approved but not downloaded
-  useEffect(() => {
-    const shouldPoll =
-      video.approvalStatus === 'APPROVED' && !hasVideoFile && video.status !== 'ERROR';
-
-    if (shouldPoll) {
-      setIsPolling(true);
-      const interval = setInterval(async () => {
-        try {
-          const response = await fetch(`/api/queue/${video.id}/status`);
-          const data = await response.json();
-          setQueueStatus(data);
-
-          // Stop polling if download is complete or failed
-          if (data.dbStatus === 'READY' || data.dbStatus === 'ERROR') {
-            setIsPolling(false);
-            router.refresh();
-          }
-        } catch (error) {
-          console.error('Failed to fetch queue status:', error);
-        }
-      }, 3000); // Poll every 3 seconds
-
-      return () => clearInterval(interval);
-    } else {
-      setIsPolling(false);
-    }
-  }, [video.id, video.approvalStatus, video.status, hasVideoFile, router]);
+  const canApprove = isPending;
 
   // Handle successful approval
   if (approveState.success) {
@@ -157,17 +125,6 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
     }
   };
 
-  const handleRetry = async () => {
-    setIsRetrying(true);
-    const result = await retryVideoDownloadAction(video.id);
-    if (result.success) {
-      router.refresh();
-    } else {
-      alert(result.error || 'Failed to retry download');
-      setIsRetrying(false);
-    }
-  };
-
   const toggleCategory = (category: string) => {
     if (selectedCategories.includes(category)) {
       setSelectedCategories(selectedCategories.filter((c) => c !== category));
@@ -178,106 +135,32 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Download Status Alert */}
-      {!hasVideoFile && video.approvalStatus !== 'REJECTED' && (
+      {/* Pending review banner */}
+      {video.approvalStatus === 'PENDING' && (
         <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
           <div className="flex items-start space-x-3">
-            <div className="text-2xl">
-              {video.status === 'DOWNLOADING' && '⬇️'}
-              {video.status === 'PROCESSING' && '⚙️'}
-              {video.status === 'READY' && '👀'}
-              {video.status === 'ERROR' && '❌'}
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-blue-900">
-                {video.status === 'READY' &&
-                  video.approvalStatus === 'PENDING' &&
-                  'Ready for review'}
-                {video.status === 'READY' &&
-                  video.approvalStatus === 'APPROVED' &&
-                  'Waiting for download to start'}
-                {video.status === 'DOWNLOADING' && 'Downloading video'}
-                {video.status === 'PROCESSING' && 'Processing video'}
-                {video.status === 'ERROR' && 'Download failed'}
-              </h3>
+            <div className="text-2xl">👀</div>
+            <div>
+              <h3 className="font-semibold text-blue-900">Ready for review</h3>
               <p className="mt-1 text-sm text-blue-700">
-                {video.status === 'READY' &&
-                  video.approvalStatus === 'PENDING' &&
-                  'Review the video using the YouTube preview below, then approve to start download'}
-                {video.status === 'READY' &&
-                  video.approvalStatus === 'APPROVED' &&
-                  'Video is approved and will be downloaded shortly'}
-                {video.status === 'DOWNLOADING' &&
-                  'The video is currently being downloaded from YouTube'}
-                {video.status === 'PROCESSING' &&
-                  'The video is being transcoded and prepared for streaming'}
-                {video.status === 'ERROR' &&
-                  'There was an error downloading the video. Click "Retry Download" below to try again.'}
+                {video.sourceType === 'PLEX'
+                  ? 'Preview the video below from your Plex server, then approve'
+                  : 'Review the video using the preview below, then approve'}
               </p>
-
-              {/* Queue Status Info */}
-              {queueStatus && isPolling && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-blue-600">
-                      {queueStatus.queue?.state === 'waiting' && '⏳ In queue...'}
-                      {queueStatus.queue?.state === 'active' && '▶️ Processing...'}
-                      {queueStatus.queue?.state === 'completed' && '✅ Complete!'}
-                      {queueStatus.queue?.state === 'failed' && '❌ Failed'}
-                      {!queueStatus.queue && '🔍 Checking status...'}
-                    </span>
-                    {queueStatus.queue && (
-                      <span className="text-blue-500">Job #{queueStatus.queue.jobId}</span>
-                    )}
-                  </div>
-
-                  {/* Progress Bar */}
-                  {queueStatus.queue?.progress > 0 && (
-                    <div className="space-y-1">
-                      <div className="h-2 overflow-hidden rounded-full bg-blue-200">
-                        <div
-                          className="h-full bg-blue-600 transition-all duration-300"
-                          style={{ width: `${queueStatus.queue.progress}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-blue-600">
-                        <span>{Math.round(queueStatus.queue.progress)}%</span>
-                        {queueStatus.queue.state === 'active' && (
-                          <span className="animate-pulse">Downloading...</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Failed Reason */}
-                  {queueStatus.queue?.failedReason && (
-                    <div className="mt-2 rounded bg-red-100 p-2 text-xs text-red-700">
-                      <strong>Error:</strong> {queueStatus.queue.failedReason}
-                    </div>
-                  )}
-
-                  {/* Retry Info */}
-                  {queueStatus.queue?.attempts > 0 && (
-                    <div className="text-xs text-blue-600">
-                      Attempt {queueStatus.queue.attempts} of 3
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Downloaded Successfully */}
-      {hasVideoFile && video.approvalStatus === 'APPROVED' && (
+      {/* Approved banner */}
+      {video.approvalStatus === 'APPROVED' && (
         <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4">
           <div className="flex items-start space-x-3">
             <div className="text-2xl">✅</div>
             <div>
-              <h3 className="font-semibold text-green-900">Video ready for viewing</h3>
+              <h3 className="font-semibold text-green-900">Video approved</h3>
               <p className="mt-1 text-sm text-green-700">
-                This video has been downloaded and is available for children to watch
+                This video is available for children to watch
               </p>
             </div>
           </div>
@@ -299,8 +182,8 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
 
       {/* Video Info Card */}
       <div className="rounded-lg bg-white p-6 shadow">
-        {/* Video Preview - Always show YouTube embed for YouTube videos */}
-        {video.sourceUrl && video.sourceType === 'YOUTUBE' && (
+        {/* Video Preview */}
+        {video.sourceType === 'YOUTUBE' && (
           <div className="mb-6">
             <h3 className="mb-2 font-semibold text-gray-900">Video Preview</h3>
             <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
@@ -317,8 +200,20 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
           </div>
         )}
 
-        {/* Thumbnail fallback for non-YouTube videos */}
-        {video.sourceType !== 'YOUTUBE' && video.thumbnailPath && (
+        {video.sourceType === 'PLEX' && video.sourceId && (
+          <div className="mb-6">
+            <h3 className="mb-2 font-semibold text-gray-900">Video Preview</h3>
+            <div className="aspect-video overflow-hidden rounded-lg bg-gray-900">
+              <PlexVideoPlayer ratingKey={video.sourceId.replace('plex:', '')} />
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              Streaming directly from your Plex server
+            </p>
+          </div>
+        )}
+
+        {/* Thumbnail fallback for other non-YouTube sources */}
+        {video.sourceType !== 'YOUTUBE' && video.sourceType !== 'PLEX' && video.thumbnailPath && (
           <div className="mb-6">
             <div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
               <img
@@ -494,14 +389,18 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
         {/* Source URL */}
         <div className="mb-6">
           <h3 className="mb-2 font-semibold text-gray-900">Source</h3>
-          <a
-            href={video.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="break-all text-sm text-blue-600 hover:underline"
-          >
-            {video.sourceUrl}
-          </a>
+          {video.sourceType === 'PLEX' ? (
+            <span className="text-sm text-gray-500">Plex Media Server</span>
+          ) : (
+            <a
+              href={video.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-sm text-blue-600 hover:underline"
+            >
+              {video.sourceUrl}
+            </a>
+          )}
         </div>
       </div>
 
@@ -611,31 +510,15 @@ export function VideoDetailView({ video }: VideoDetailViewProps) {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-gray-900">Actions</h3>
-              <p className="text-sm text-gray-600">
-                {video.status === 'ERROR'
-                  ? 'Download failed - you can retry or delete this video'
-                  : 'This video has already been reviewed'}
-              </p>
+              <p className="text-sm text-gray-600">This video has already been reviewed</p>
             </div>
-            <div className="flex gap-3">
-              {video.status === 'ERROR' && (
-                <button
-                  type="button"
-                  onClick={handleRetry}
-                  disabled={isRetrying}
-                  className="rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isRetrying ? 'Retrying...' : 'Retry Download'}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowDeleteDialog(true)}
-                className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
-              >
-                Delete Video
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowDeleteDialog(true)}
+              className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            >
+              Delete Video
+            </button>
           </div>
         </div>
       )}
