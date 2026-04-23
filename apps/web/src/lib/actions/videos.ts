@@ -20,7 +20,7 @@ import { logger } from '@/lib/logger';
 
 const createVideoSchema = z.object({
   sourceUrl: z.string().url('Invalid URL'),
-  sourceType: z.enum(['YOUTUBE', 'VIMEO', 'UPLOAD', 'OTHER']),
+  sourceType: z.enum(['YOUTUBE', 'VIMEO', 'UPLOAD', 'REALDEBRID', 'PLEX', 'OTHER']),
   sourceId: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
@@ -184,8 +184,8 @@ export async function approveVideoAction(
     // Approve the video
     await approveVideo(videoId, familyId, user.id, data);
 
-    // YouTube videos are immediately watchable via embed — no download needed
-    if (video.sourceType === 'YOUTUBE') {
+    // YouTube and Plex videos are immediately watchable via embed/proxy — no download needed
+    if (video.sourceType === 'YOUTUBE' || video.sourceType === 'PLEX') {
       await prisma.video.update({
         where: { id: videoId },
         data: { playbackMode: 'EMBED', status: 'READY' },

@@ -150,3 +150,69 @@ export function getPlexStreamUrl(serverUrl: string, token: string, partKey: stri
   const base = serverUrl.replace(/\/$/, '');
   return `${base}${partKey}?X-Plex-Token=${token}`;
 }
+
+export interface PlexSeason {
+  ratingKey: string;
+  title: string;       // "Season 1"
+  parentTitle: string; // show name
+  index: number;       // season number
+  leafCount: number;   // episode count
+  thumbUrl: string | null;
+}
+
+/** Get children of a Plex item (seasons of a show, or episodes of a season). */
+export async function getPlexChildren(
+  serverUrl: string,
+  token: string,
+  ratingKey: string
+): Promise<{ type: 'season' | 'episode' | string; seasons?: PlexSeason[]; episodes?: PlexItem[] }> {
+  const base = serverUrl.replace(/\/$/, '');
+  const res = await fetch(`${base}/library/metadata/${ratingKey}/children`, {
+    headers: plexHeaders(token),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Failed to fetch children: ${res.status}`);
+  const data = await res.json();
+
+  const rawItems: Record<string, unknown>[] = data?.MediaContainer?.Metadata ?? [];
+  if (rawItems.length === 0) return { type: 'unknown' };
+
+  const firstType = String(rawItems[0].type ?? '');
+
+  if (firstType === 'season') {
+    const seasons: PlexSeason[] = rawItems.map((s) => ({
+      ratingKey: String(s.ratingKey),
+      title: String(s.title),
+      parentTitle: String(s.parentTitle ?? ''),
+      index: Number(s.index ?? 0),
+      leafCount: Number(s.leafCount ?? 0),
+      thumbUrl: s.thumb ? `${base}${s.thumb}?X-Plex-Token=${token}` : null,
+    }));
+    return { type: 'season', seasons };
+  }
+
+  if (firstType === 'episode') {
+    const episodes: PlexItem[] = rawItems.map((m) => {
+      const media = (m.Media as Record<string, unknown>[])?.[0];
+      const part = (media?.Part as Record<string, unknown>[])?.[0];
+      return {
+        ratingKey: String(m.ratingKey),
+        title: String(m.title),
+        type: 'episode' as const,
+        summary: (m.summary as string) || null,
+        year: m.year ? Number(m.year) : null,
+        contentRating: (m.contentRating as string) || null,
+        duration: m.duration ? Math.round(Number(m.duration) / 1000) : null,
+        thumbUrl: m.thumb ? `${base}${m.thumb}?X-Plex-Token=${token}` : null,
+        grandparentTitle: m.grandparentTitle ? String(m.grandparentTitle) : undefined,
+        parentTitle: m.parentTitle ? String(m.parentTitle) : undefined,
+        index: m.index ? Number(m.index) : undefined,
+        parentIndex: m.parentIndex ? Number(m.parentIndex) : undefined,
+        partKey: part?.key ? String(part.key) : undefined,
+      };
+    });
+    return { type: 'episode', episodes };
+  }
+
+  return { type: firstType };
+}
